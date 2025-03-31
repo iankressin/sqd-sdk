@@ -22,6 +22,6 @@ common/autoinstallers/*/.npmrc
 .vscode
 
 # Built js libs
-/*/*/lib
+**/*/lib
 
 .turbo

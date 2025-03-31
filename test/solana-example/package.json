@@ -1,0 +1,18 @@
+{
+  "name": "solana-example",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "rm -rf lib && tsc"
+  },
+  "dependencies": {
+    "@sqd-sdk/core": "workspace:^",
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.41.0",
+    "viem": "^2.23.15"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.83",
+    "typescript": "~5.5.4"
+  }
+}

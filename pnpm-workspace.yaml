@@ -1,6 +1,3 @@
 packages:
-  - evm/*
-  - ops/*
-  - processor/*
-  - util/*
+  - core
   - test/*
