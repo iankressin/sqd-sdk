@@ -14,12 +14,14 @@
             "recommended": true,
             "style": {
                 "noParameterAssign": "off",
-                "useConst": "off"
+                "useConst": "off",
+                "noNonNullAssertion": "off"
             },
             "suspicious": {
                 "noExplicitAny": "off",
                 "noConfusingVoidType": "off",
-                "noCatchAssign": "off"
+                "noCatchAssign": "off",
+                "noUnsafeDeclarationMerging": "off"
             }
         },
         "ignore": [

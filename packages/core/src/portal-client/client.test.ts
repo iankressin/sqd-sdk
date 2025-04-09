@@ -1,5 +1,7 @@
-import {HttpClient} from '@sqd-sdk/core/http-client'
-import {PortalClient} from '@sqd-sdk/core/portal-client'
+import {PortalClient} from './client'
+import type * as Solana from './query/solana'
+import {last} from '../internal/misc'
+import {HttpClient} from '../http-client/client'
 
 async function main() {
     let portal = new PortalClient({
@@ -33,12 +35,7 @@ async function main() {
                 logIndex: true,
                 transactionIndex: true,
             },
-            balance: {
-                pre: true,
-                post: true,
-                transactionIndex: true,
-                account: true,
-            },
+            balance: {pre: true, post: true, transactionIndex: true, account: true},
             tokenBalance: {
                 preMint: true,
                 preDecimals: true,
@@ -62,10 +59,10 @@ async function main() {
             },
         ],
         fromBlock,
-    } as const
+    } as const satisfies Solana.FinalizedQuery
 
     for await (let {blocks, finalizedHead} of portal.getStream(query, {stopOnHead: false})) {
-        let lastBlock = blocks[blocks.length - 1].header as any
+        let lastBlock = last(blocks).header as any
         console.log(
             [
                 `[${new Date().toISOString()}] progress: ${lastBlock.number} / ${Math.max(

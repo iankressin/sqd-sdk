@@ -1,0 +1,87 @@
+{
+    "name": "@sqd-sdk/core",
+    "version": "0.0.0",
+    "license": "GPL-3.0-or-later",
+    "publishConfig": {
+        "access": "public"
+    },
+    "files": [
+        "lib",
+        "src"
+    ],
+    "scripts": {
+        "build": "rm -rf lib && tsup"
+    },
+    "dependencies": {
+        "supports-color": "^8.1.1"
+    },
+    "devDependencies": {
+        "@types/supports-color": "^8.1.3",
+        "esbuild-fix-imports-plugin": "^1.0.19",
+        "esbuild-plugin-alias": "^0.2.1",
+        "esbuild-plugin-tsconfig-paths": "^1.0.0",
+        "typescript": "~5.5.4"
+    },
+    "exports": {
+        "./http-client": {
+            "import": {
+                "types": "./lib/http-client/index.d.mts",
+                "default": "./lib/http-client/index.mjs"
+            },
+            "require": {
+                "types": "./lib/http-client/index.d.ts",
+                "default": "./lib/http-client/index.js"
+            }
+        },
+        "./portal-client": {
+            "import": {
+                "types": "./lib/portal-client/index.d.mts",
+                "default": "./lib/portal-client/index.mjs"
+            },
+            "require": {
+                "types": "./lib/portal-client/index.d.ts",
+                "default": "./lib/portal-client/index.js"
+            }
+        },
+        "./portal-client/solana": {
+            "import": {
+                "types": "./lib/portal-client/query/solana.d.mts",
+                "default": "./lib/portal-client/query/solana.mjs"
+            },
+            "require": {
+                "types": "./lib/portal-client/query/solana.d.ts",
+                "default": "./lib/portal-client/query/solana.js"
+            }
+        },
+        "./pipeline": {
+            "import": {
+                "types": "./lib/pipeline.d.mts",
+                "default": "./lib/pipeline.mjs"
+            },
+            "require": {
+                "types": "./lib/pipeline.d.ts",
+                "default": "./lib/pipeline.js"
+            }
+        },
+        "./validation": {
+            "import": {
+                "types": "./lib/validation/index.d.mts",
+                "default": "./lib/validation/index.mjs"
+            },
+            "require": {
+                "types": "./lib/validation/index.d.ts",
+                "default": "./lib/validation/index.js"
+            }
+        },
+        "./internal/*": {
+            "import": {
+                "types": "./lib/internal/*.d.mts",
+                "default": "./lib/internal/*.mjs"
+            },
+            "require": {
+                "types": "./lib/internal/*.d.ts",
+                "default": "./lib/internal/*.js"
+            }
+        }
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "target": "es2022",
+        "outDir": "lib",
+        "rootDir": "src",
+        "allowJs": true,
+        "strict": true,
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "esModuleInterop": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true,
+        "declarationDir": "lib"
+    },
+    "include": ["src"],
+    "exclude": ["node_modules"]
+}
