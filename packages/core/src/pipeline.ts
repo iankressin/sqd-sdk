@@ -18,14 +18,14 @@ export interface BlockBatch<B> {
     finalizedHead?: BlockRef
 }
 
-export type DataSourceStream<B> = AsyncIterable<BlockBatch<B>>
-
 export interface DataSource<B> {
+    locked: ReadableStream['locked']
+
     getHead(): Promise<BlockRef | undefined>
 
     getFinalizedHead(): Promise<BlockRef | undefined>
 
-    getStream(req: DataSourceStreamOptions): DataSourceStream<B>
+    getStream(req: DataSourceStreamOptions): ReadableStream<BlockBatch<B>>
 }
 
 export class ForkException extends Error {
@@ -49,7 +49,7 @@ export class ForkException extends Error {
 }
 
 export function isForkException(err: unknown): err is ForkException {
-    return err instanceof Error && !!(err as any).isSqdForkException
+    return err instanceof Error && !!(err as Partial<ForkException>).isSqdForkException
 }
 
 export class DataConsistencyError extends Error {
@@ -67,5 +67,19 @@ export class BlockConsistencyError extends DataConsistencyError {
 }
 
 export function isDataConsistencyError(err: unknown): err is Error {
-    return err instanceof Error && !!(err as any).isSqdDataConsistencyError
+    return err instanceof Error && !!(err as Partial<DataConsistencyError>).isSqdDataConsistencyError
+}
+
+export interface DataSink<B> {
+    unfinalized?: boolean
+
+    locked: WritableStream['locked']
+
+    getHead(): Promise<BlockRef | undefined>
+
+    getFinalizedHead(): Promise<BlockRef | undefined>
+
+    getStream(opts: any): WritableStream<B>
+
+    rollbackBlocks(refs: BlockRef[]): Promise<void>
 }

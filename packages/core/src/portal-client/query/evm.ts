@@ -1,5 +1,13 @@
 import type {Select, Selector, Trues} from '../../internal/selection'
-import type {AddPrefix, Hex, ConditionalOmit, RemoveKeysPrefix, Simplify} from '../../internal/types'
+import type {Hex, ConditionalOmit, Simplify} from '../../internal/types'
+
+type AddPrefix<Prefix extends string, S> = S extends string ? `${Prefix}${Capitalize<S>}` : never
+
+type RemovePrefix<Prefix extends string, T> = T extends `${Prefix}${infer S}` ? Uncapitalize<S> : never
+
+type RemoveKeysPrefix<Prefix extends string, T> = {
+    [K in keyof T as RemovePrefix<Prefix, K>]: T[K]
+}
 
 export type BlockHeaderFields = {
     number: number

@@ -1,5 +1,5 @@
 import type {Select, Selector, Trues} from '../../internal/selection'
-import type {Base58, Simplify} from '../../internal/types'
+import type {Base58, Base64, Simplify} from '../../internal/types'
 
 export type BlockHeaderFields = {
     hash: Base58
@@ -63,7 +63,7 @@ export type LogMessageFields = {
     instructionAddress: number[]
     programId: Base58
     kind: 'log' | 'data' | 'other'
-    message: string
+    message: Base64
 }
 
 export type BalanceFields = {

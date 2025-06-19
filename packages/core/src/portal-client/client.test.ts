@@ -12,30 +12,13 @@ async function main() {
         minBytes: 100 * 1024 * 1024,
     })
 
-    let fromBlock = await portal.getHead().then((h) => (h?.number ?? 0) - 50_000)
+    let fromBlock = 341289582
 
     let query = {
         type: 'solana',
         fields: {
             block: {number: true, timestamp: true, hash: true, parentHash: true},
             transaction: {signatures: true, err: true, transactionIndex: true},
-            instruction: {
-                programId: true,
-                accounts: true,
-                data: true,
-                isCommitted: true,
-                transactionIndex: true,
-                instructionAddress: true,
-            },
-            log: {
-                programId: true,
-                kind: true,
-                message: true,
-                instructionAddress: true,
-                logIndex: true,
-                transactionIndex: true,
-            },
-            balance: {pre: true, post: true, transactionIndex: true, account: true},
             tokenBalance: {
                 preMint: true,
                 preDecimals: true,
@@ -48,7 +31,6 @@ async function main() {
                 transactionIndex: true,
                 account: true,
             },
-            reward: {rewardType: true, pubkey: true},
         },
         instructions: [
             {
@@ -56,23 +38,15 @@ async function main() {
                 d8: ['0xf8c69e91e17587c8'],
                 isCommitted: true,
                 innerInstructions: true,
+                transactionTokenBalances: true,
             },
         ],
         fromBlock,
+        toBlock: fromBlock,
     } as const satisfies Solana.FinalizedQuery
 
     for await (let {blocks, finalizedHead} of portal.getStream(query, {stopOnHead: false})) {
-        let lastBlock = last(blocks).header as any
-        console.log(
-            [
-                `[${new Date().toISOString()}] progress: ${lastBlock.number} / ${Math.max(
-                    finalizedHead?.number ?? -1,
-                    lastBlock.number,
-                )}`,
-                `blocks: ${blocks.length}`,
-                `lag: ${(Date.now() - lastBlock.timestamp * 1000) / 1000}`,
-            ].join(', '),
-        )
+        console.log(blocks[0])
     }
     console.log('end')
 }
