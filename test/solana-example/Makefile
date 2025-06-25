@@ -1,4 +1,4 @@
-process: migrate
+process:
 	@npx node -r dotenv/config lib/main.js
 
 

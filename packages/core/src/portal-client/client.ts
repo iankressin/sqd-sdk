@@ -62,8 +62,6 @@ export interface PortalStreamOptions {
     maxWaitTime?: number
 
     headPollInterval?: number
-
-    stopOnHead?: boolean
 }
 
 export type PortalStreamData<B> = {
@@ -71,7 +69,7 @@ export type PortalStreamData<B> = {
     finalizedHead?: BlockRef
 }
 
-export interface PortalStream<B> extends ReadableStream<PortalStreamData<B>> {}
+export interface PortalStream<B> extends AsyncIterable<PortalStreamData<B>> {}
 
 export type PortalQuery = {
     type: string
@@ -142,10 +140,9 @@ export class PortalClient {
             maxIdleTime = this.maxIdleTime,
             maxWaitTime = this.maxWaitTime,
             request = {},
-            stopOnHead = false,
         } = options ?? {}
 
-        return createReadablePortalStream(
+        return createPortalStream(
             query,
             {
                 headPollInterval,
@@ -154,7 +151,6 @@ export class PortalClient {
                 maxIdleTime,
                 maxWaitTime,
                 request,
-                stopOnHead,
             },
             async (q, o) => this.getStreamRequest('finalized-stream', q, o),
         )
@@ -171,10 +167,9 @@ export class PortalClient {
             maxIdleTime = this.maxIdleTime,
             maxWaitTime = this.maxWaitTime,
             request = {},
-            stopOnHead = false,
         } = options ?? {}
 
-        return createReadablePortalStream(
+        return createPortalStream(
             query,
             {
                 headPollInterval,
@@ -183,7 +178,6 @@ export class PortalClient {
                 maxIdleTime,
                 maxWaitTime,
                 request,
-                stopOnHead,
             },
             async (q, o) => this.getStreamRequest('stream', q, o),
         )
@@ -239,7 +233,7 @@ export class PortalClient {
     }
 }
 
-function createReadablePortalStream<Q extends PortalQuery = PortalQuery, R extends PortalResponse = PortalResponse>(
+function createPortalStream<Q extends PortalQuery = PortalQuery, R extends PortalResponse = PortalResponse>(
     query: Q,
     options: Required<PortalStreamOptions>,
     requestStream: (
@@ -247,7 +241,7 @@ function createReadablePortalStream<Q extends PortalQuery = PortalQuery, R exten
         options?: PortalRequestOptions,
     ) => Promise<{finalizedHead?: BlockRef; stream?: ReadableStream<string[]>} | undefined>,
 ): PortalStream<R> {
-    let {headPollInterval, stopOnHead, request, ...bufferOptions} = options
+    let {headPollInterval, request, ...bufferOptions} = options
 
     let abortStream = new AbortController()
 
@@ -258,12 +252,12 @@ function createReadablePortalStream<Q extends PortalQuery = PortalQuery, R exten
         let abortSignal = abortStream.signal
         let {fromBlock = 0, toBlock = Number.POSITIVE_INFINITY, parentBlockHash} = query
 
-        while (true) {
-            if (abortSignal.aborted) break
-            if (fromBlock > toBlock) break
+        if (abortSignal.aborted) return
+        if (fromBlock > toBlock) return
 
-            let reader: ReadableStreamDefaultReader<string[]> | undefined
-            try {
+        let reader: ReadableStreamDefaultReader<string[]> | undefined
+        try {
+            while (true) {
                 let res = await requestStream(
                     {
                         ...query,
@@ -276,86 +270,84 @@ function createReadablePortalStream<Q extends PortalQuery = PortalQuery, R exten
                     },
                 )
 
+                // we are on head
                 if (res == null) {
-                    if (stopOnHead) return false
+                    buffer.ready()
                     await wait(headPollInterval, abortSignal)
-                } else {
-                    // no data left
-                    if (res.stream == null) break
+                    continue
+                }
 
-                    finalizedHead = res.finalizedHead
-                    reader = res.stream.getReader()
+                finalizedHead = res.finalizedHead
 
-                    while (true) {
-                        let data = await withAbort(reader.read(), abortSignal)
-                        if (data.done) break
-                        if (data.value.length === 0) continue
+                // no data left on this range
+                if (res.stream == null) return
+                reader = res.stream.getReader()
 
-                        let blocks: R[] = []
-                        let bytes = 0
+                while (true) {
+                    let data = await withAbort(reader.read(), abortSignal)
+                    if (data.done) break
+                    if (data.value.length === 0) continue
 
-                        for (let line of data.value) {
-                            let block = JSON.parse(line) as R
+                    let blocks: R[] = []
+                    let bytes = 0
 
-                            blocks.push(block)
-                            bytes += line.length
+                    for (let line of data.value) {
+                        let block = JSON.parse(line) as R
 
-                            fromBlock = block.header.number + 1
-                            parentBlockHash = block.header.hash
-                        }
-
-                        await withAbort(buffer.put(blocks, bytes), abortSignal)
+                        blocks.push(block)
+                        bytes += line.length
                     }
-                }
 
-                buffer.ready()
-            } catch (err) {
-                if (abortSignal.aborted || isStreamAbortedError(err)) {
-                    // ignore
-                } else {
-                    throw err
+                    await withAbort(buffer.put(blocks, bytes), abortSignal)
                 }
-            } finally {
-                reader?.cancel().catch(() => {})
             }
+        } catch (err) {
+            if (abortSignal.aborted || isStreamAbortedError(err)) {
+                // ignore
+            } else {
+                throw err
+            }
+        } finally {
+            reader?.cancel().catch(() => {})
         }
-
-        return true
     }
 
-    let stream: PortalStream<R> = new ReadableStream({
-        start() {
-            ingest().then(
-                () => buffer.close(),
-                (err) => buffer.fail(err),
-            )
-        },
-        async pull(controller) {
-            try {
-                let result = await buffer.take()
+    ingest().then(
+        () => buffer.close(),
+        (err) => buffer.fail(err),
+    )
 
-                if (result.done) {
-                    controller.close()
-                } else {
-                    controller.enqueue({
-                        blocks: result.value,
-                        finalizedHead,
-                    })
-                }
-            } catch (err) {
-                controller.error(err)
+    return {
+        [Symbol.asyncIterator]: () => {
+            return {
+                next: async () => {
+                    const res = await buffer.take()
+                    if (res.done) {
+                        return {done: true, value: undefined}
+                    }
+                    return {
+                        done: false,
+                        value: {
+                            blocks: res.value,
+                            finalizedHead,
+                        },
+                    }
+                },
+                throw: (err) => {
+                    abortStream.abort(err)
+                    return Promise.resolve({done: true, value: undefined})
+                },
+                return: (value) => {
+                    abortStream.abort()
+                    return Promise.resolve({done: true, value})
+                },
             }
         },
-        cancel(reason) {
-            abortStream.abort(reason)
-        },
-    })
-
-    return stream
+    }
 }
 
 class PortalStreamBuffer<B> {
-    private buffer: {blocks: B[]; bytes: number} | undefined
+    private buffer: {blocks: B[]; bytes: number}
     private state: 'open' | 'failed' | 'closed' = 'open'
     private error: unknown
 
@@ -376,6 +368,7 @@ class PortalStreamBuffer<B> {
         this.minBytes = options.minBytes
         this.maxBytes = Math.max(options.maxBytes, options.minBytes)
         this.maxIdleTime = options.maxIdleTime
+        this.buffer = {blocks: [], bytes: 0}
     }
 
     async take(): Promise<{done: true; value?: undefined} | {value: B[]; done: false}> {
@@ -390,8 +383,8 @@ class PortalStreamBuffer<B> {
             throw this.error
         }
 
-        let value = this.buffer?.blocks
-        this.buffer = undefined
+        let value = this.buffer.blocks
+        this.buffer = {blocks: [], bytes: 0}
 
         this.takeFuture.resolve()
 
@@ -431,13 +424,6 @@ class PortalStreamBuffer<B> {
             })
         }
 
-        if (this.buffer == null) {
-            this.buffer = {
-                blocks: [],
-                bytes: 0,
-            }
-        }
-
         this.buffer.bytes += bytes
         this.buffer.blocks.push(...blocks)
 
@@ -453,7 +439,6 @@ class PortalStreamBuffer<B> {
     }
 
     ready() {
-        if (this.buffer == null) return
         this.readyFuture.resolve()
     }
 

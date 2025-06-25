@@ -1,5 +1,5 @@
-import {applyRangeBound, mergeRangeRequests, type RangeRequest, type Range} from '@sqd-sdk/core/internal/range/index'
-import type {DataSource, DataSourceStream, BlockBatch, DataSourceStreamOptions} from '@sqd-sdk/core/pipeline'
+import {applyRangeBound, getRangeAt, getRequestAt, mergeRangeRequests} from '@sqd-sdk/core/internal/range/index'
+import {BlockReader, type BlockBatch} from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {
     type Block,
@@ -11,81 +11,63 @@ import {
 } from './objects'
 import {getDataSchema} from './schema'
 import {setUpRelations} from './objects/relations'
-import {type DataRequest, mergeDataRequests, type SolanaQueryOptions} from './query'
-import {PortalClient, type PortalStreamData, type PortalClientOptions} from '@sqd-sdk/core/portal-client'
+import {mergeDataRequests, type SolanaQueryOptions} from './query'
+import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal-client'
 import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal/selection'
+import {assert, maybeLast} from '@sqd-sdk/core/internal/misc'
 
-export interface SolanaPortalDataSourceOptions<Q extends SolanaQueryOptions> {
+export interface SolanaPortalDataReaderOptions<Q extends SolanaQueryOptions> {
     portal: PortalClientOptions | PortalClient
     query: Q
 }
 
-export class SolanaPortalDataSource<
-    Q extends SolanaQueryOptions,
-    B extends Block<GetFields<Q['fields']>> = Block<GetFields<Q['fields']>>,
-> implements DataSource<B>
-{
-    private portal: PortalClient
-    private fields: Q['fields']
-    private requests: RangeRequest<DataRequest>[]
+export function createSolanaPortalDataReader<Q extends SolanaQueryOptions>(
+    options: SolanaPortalDataReaderOptions<Q>,
+): BlockReader<Block<GetFields<Q['fields']>>> {
+    const portal = options.portal instanceof PortalClient ? options.portal : new PortalClient(options.portal)
+    const fields = getFields(options.query.fields)
+    const requests = mergeRangeRequests(options.query.requests, mergeDataRequests)
 
-    constructor(options: SolanaPortalDataSourceOptions<Q>) {
-        this.portal = options.portal instanceof PortalClient ? options.portal : new PortalClient(options.portal)
-        this.fields = options.query.fields
-        this.requests = mergeRangeRequests(options.query.requests, mergeDataRequests)
-    }
+    return new BlockReader({
+        head: async () => portal.getHead(),
+        stream: async function* (opts) {
+            let requestsBounded = applyRangeBound(requests, opts?.range)
 
-    getHead() {
-        return this.portal.getHead()
-    }
+            let fromBlock = requestsBounded[0]?.range.from ?? 0
+            while (true) {
+                let request = getRangeAt(requestsBounded, fromBlock)
+                if (request == null) break
 
-    getFinalizedHead() {
-        return this.portal.getFinalizedHead()
-    }
-
-    getStream(opts?: DataSourceStreamOptions): DataSourceStream<B> {
-        let fields = getFields(this.fields)
-        let requests = applyRangeBound(this.requests, opts?.range)
-
-        let {writable, readable} = new TransformStream<PortalStreamData<Block<typeof fields>>, BlockBatch<B>>({
-            transform: async (data, controller) => {
-                let blocks = data.blocks.map((b) => {
-                    let block = mapBlock(b, fields)
-                    return block
-                }) as BlockBatch<B>['blocks']
-
-                controller.enqueue({
-                    blocks,
-                    finalizedHead: data.finalizedHead,
-                })
-            },
-        })
-
-        const ingest = async () => {
-            for (let request of requests) {
                 let query = {
                     type: 'solana',
-                    fromBlock: request.range.from,
+                    fromBlock,
                     toBlock: request.range.to,
                     fields,
                     ...request.request,
                 }
 
-                await this.portal.getFinalizedStream(query, {stopOnHead: opts?.stopOnHead}).pipeTo(writable, {
-                    preventClose: true,
-                })
+                for await (let batch of portal.getStream(query)) {
+                    yield {
+                        blocks: batch.blocks.map((b) => mapBlock(b, fields)) as BlockBatch<
+                            Block<GetFields<Q['fields']>>
+                        >['blocks'],
+                        finalizedHead: batch.finalizedHead,
+                    }
+
+                    const lastBlock = maybeLast(batch.blocks)
+                    if (lastBlock != null) {
+                        fromBlock = lastBlock.header.number + 1
+                    }
+                }
+
+                if (query.fromBlock === fromBlock) {
+                    // FIXME: wierd, but lets put it here for now
+                    assert(request.range.to != null)
+                    fromBlock = request.range.to + 1
+                }
             }
-        }
-
-        ingest()
-            .then(
-                () => writable.close(),
-                (reason) => writable.abort(reason),
-            )
-            .catch(() => {})
-
-        return readable
-    }
+        },
+    })
 }
 
 export function mapBlock<F extends ReqiredFieldSelection>(rawBlock: unknown, fields: ReqiredFieldSelection): Block<F> {

@@ -83,12 +83,18 @@ importers:
       '@subsquid/big-decimal':
         specifier: ^1.0.0
         version: 1.0.0
-      '@subsquid/typeorm-config':
-        specifier: ^4.1.1
-        version: 4.1.1(typeorm@0.3.17)
+      '@subsquid/logger':
+        specifier: ^1.0.0
+        version: 1.4.0
       '@subsquid/util-internal':
         specifier: ^3.2.0
         version: 3.2.0
+      '@subsquid/util-internal-ts-node':
+        specifier: ^0.0.0
+        version: 0.0.0
+      '@subsquid/util-naming':
+        specifier: ^1.0.0
+        version: 1.3.0
       typeorm:
         specifier: ^0.3.17
         version: 0.3.17(pg@8.14.1)
@@ -123,6 +129,9 @@ importers:
       '@sqd-sdk/core':
         specifier: workspace:^
         version: link:../../packages/core
+      '@sqd-sdk/solana-stream':
+        specifier: workspace:^
+        version: link:../../packages/solana/solana-stream
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
@@ -1026,20 +1035,6 @@ packages:
       '@subsquid/util-internal-hex': 1.2.2
       '@subsquid/util-internal-json': 1.2.3
       supports-color: 8.1.1
-    dev: false
-
-  /@subsquid/typeorm-config@4.1.1(typeorm@0.3.17):
-    resolution: {integrity: sha512-3T2L2jmFIRYxWHL/w4rMuaSiHLhDywQWPKtfD3TaSohjXR+VdDG5XimDMmSwM4dzQTBToGpnfUEkzH3v1+EnCg==}
-    peerDependencies:
-      typeorm: ^0.3.17
-    peerDependenciesMeta:
-      typeorm:
-        optional: true
-    dependencies:
-      '@subsquid/logger': 1.4.0
-      '@subsquid/util-internal-ts-node': 0.0.0
-      '@subsquid/util-naming': 1.3.0
-      typeorm: 0.3.17(pg@8.14.1)
     dev: false
 
   /@subsquid/util-internal-hex@1.2.2:

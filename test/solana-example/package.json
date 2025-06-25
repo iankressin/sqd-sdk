@@ -5,10 +5,10 @@
   "scripts": {
     "build": "rm -rf lib && tsc"
   },
-  "type": "commonjs",
   "dependencies": {
     "@aws-sdk/core": "^3.775.0",
     "@sqd-sdk/core": "workspace:^",
+    "@sqd-sdk/solana-stream": "workspace:^",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.41.0",
     "viem": "^2.23.15"

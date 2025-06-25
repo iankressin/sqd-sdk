@@ -2,12 +2,16 @@ import {assertNotNull, partitionBy} from '../misc'
 import type {FiniteRange, RangeRequest} from '../range'
 import {applyRangeBound} from './util'
 
-export function getRequestAt<R>(requests: RangeRequest<R>[], height: number): R | undefined {
-    for (let req of requests) {
+export function getRangeAt<R extends RangeRequest<any>>(ranges: R[], height: number): R | undefined {
+    for (let req of ranges) {
         let from = req.range.from
         let to = req.range.to ?? Number.POSITIVE_INFINITY
-        if (from <= height && height <= to) return req.request
+        if (from <= height && height <= to) return req
     }
+}
+
+export function getRequestAt<R>(requests: RangeRequest<R>[], height: number): R | undefined {
+    return getRangeAt(requests, height)?.request
 }
 
 export function hasRequestsAfter(requests: RangeRequest<unknown>[], height: number): boolean {
