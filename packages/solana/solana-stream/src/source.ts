@@ -15,6 +15,7 @@ import {mergeDataRequests, type SolanaQueryOptions} from './query'
 import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal-client'
 import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal/selection'
 import {assert, maybeLast} from '@sqd-sdk/core/internal/misc'
+import {Throttler} from '@sqd-sdk/core/internal/throttler'
 
 export interface SolanaPortalDataReaderOptions<Q extends SolanaQueryOptions> {
     portal: PortalClientOptions | PortalClient
@@ -28,42 +29,48 @@ export function createSolanaPortalDataReader<Q extends SolanaQueryOptions>(
     const fields = getFields(options.query.fields)
     const requests = mergeRangeRequests(options.query.requests, mergeDataRequests)
 
+    const headThrottler = new Throttler(async () => portal.getHead(), 5_000)
+
     return new BlockReader({
         head: async () => portal.getHead(),
-        stream: async function* (opts) {
+        read: async function* (opts) {
             let requestsBounded = applyRangeBound(requests, opts?.range)
 
-            let fromBlock = requestsBounded[0]?.range.from ?? 0
-            while (true) {
-                let request = getRangeAt(requestsBounded, fromBlock)
-                if (request == null) break
+            for (let request of requestsBounded) {
+                let fromBlock = request.range.from
+                while (true) {
+                    if (request.range.to != null && fromBlock > request.range.to) break
 
-                let query = {
-                    type: 'solana',
-                    fromBlock,
-                    toBlock: request.range.to,
-                    fields,
-                    ...request.request,
-                }
-
-                for await (let batch of portal.getStream(query)) {
-                    yield {
-                        blocks: batch.blocks.map((b) => mapBlock(b, fields)) as BlockBatch<
-                            Block<GetFields<Q['fields']>>
-                        >['blocks'],
-                        finalizedHead: batch.finalizedHead,
+                    let query = {
+                        type: 'solana',
+                        fromBlock,
+                        toBlock: request.range.to,
+                        fields,
+                        ...request.request,
                     }
 
-                    const lastBlock = maybeLast(batch.blocks)
-                    if (lastBlock != null) {
-                        fromBlock = lastBlock.header.number + 1
-                    }
-                }
+                    const head = await headThrottler.get()
 
-                if (query.fromBlock === fromBlock) {
-                    // FIXME: wierd, but lets put it here for now
-                    assert(request.range.to != null)
-                    fromBlock = request.range.to + 1
+                    for await (let batch of portal.getStream(query)) {
+                        const lastBlock = maybeLast(batch.blocks)
+                        yield {
+                            blocks: batch.blocks.map((b) => mapBlock(b, fields)) as BlockBatch<
+                                Block<GetFields<Q['fields']>>
+                            >['blocks'],
+                            finalizedHead: batch.finalizedHead,
+                            head: (head?.number ?? 0) > (lastBlock?.header.number ?? 0) ? head : lastBlock?.header,
+                        }
+
+                        if (lastBlock != null) {
+                            fromBlock = lastBlock.header.number + 1
+                        }
+                    }
+
+                    if (query.fromBlock === fromBlock) {
+                        // FIXME: wierd, but lets put it here for now
+                        assert(request.range.to != null)
+                        fromBlock = request.range.to + 1
+                    }
                 }
             }
         },

@@ -23,6 +23,16 @@
         "typescript": "~5.5.4"
     },
     "exports": {
+        "./logger": {
+            "import": {
+                "types": "./lib/logger/index.d.mts",
+                "default": "./lib/logger/index.mjs"
+            },
+            "require": {
+                "types": "./lib/logger/index.d.ts",
+                "default": "./lib/logger/index.js"
+            }
+        },
         "./http-client": {
             "import": {
                 "types": "./lib/http-client/index.d.mts",

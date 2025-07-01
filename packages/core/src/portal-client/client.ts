@@ -250,10 +250,10 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R extends Porta
 
     async function ingest() {
         let abortSignal = abortStream.signal
-        let {fromBlock = 0, toBlock = Number.POSITIVE_INFINITY, parentBlockHash} = query
+        let {fromBlock = 0, toBlock, parentBlockHash} = query
 
         if (abortSignal.aborted) return
-        if (fromBlock > toBlock) return
+        if (toBlock != null && fromBlock > toBlock) return
 
         let reader: ReadableStreamDefaultReader<string[]> | undefined
         try {
@@ -300,6 +300,8 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R extends Porta
 
                     await withAbort(buffer.put(blocks, bytes), abortSignal)
                 }
+
+                return
             }
         } catch (err) {
             if (abortSignal.aborted || isStreamAbortedError(err)) {
@@ -325,6 +327,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R extends Porta
                     if (res.done) {
                         return {done: true, value: undefined}
                     }
+
                     return {
                         done: false,
                         value: {
@@ -389,7 +392,7 @@ class PortalStreamBuffer<B> {
         this.takeFuture.resolve()
 
         if (this.state === 'closed') {
-            return value == null ? {done: true} : {value, done: false}
+            return value.length === 0 ? {done: true} : {value, done: false}
         }
 
         if (value == null) {
@@ -446,7 +449,7 @@ class PortalStreamBuffer<B> {
         if (this.state !== 'open') return
         this.state = 'closed'
         this.readyFuture.resolve()
-        this.putFuture.resolve()
+        this.putFuture.reject(new Error('closed'))
         this.takeFuture.resolve()
     }
 
@@ -455,7 +458,7 @@ class PortalStreamBuffer<B> {
         this.state = 'failed'
         this.error = err
         this.readyFuture.resolve()
-        this.putFuture.resolve()
+        this.putFuture.reject(err as Error)
         this.takeFuture.resolve()
     }
 }

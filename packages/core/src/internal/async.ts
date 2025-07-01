@@ -142,7 +142,7 @@ export class AsyncQueue<T> {
         }
     }
 
-    async *iterate(): AsyncIterable<T> {
+    async *iterate(): AsyncIterableIterator<T> {
         try {
             while (true) {
                 let val = await this.take()
@@ -152,6 +152,10 @@ export class AsyncQueue<T> {
         } finally {
             this.close()
         }
+    }
+
+    [Symbol.asyncIterator](): AsyncIterableIterator<T> {
+        return this.iterate()
     }
 }
 
