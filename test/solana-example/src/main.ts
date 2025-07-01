@@ -3,7 +3,7 @@ import {createLogger} from '@sqd-sdk/core/logger'
 import {BlockWriter, transformer, type BlockRef, BlockReader, ForkException, finalizer} from '@sqd-sdk/core/pipeline'
 import {PortalClient} from '@sqd-sdk/core/portal-client'
 import {createSolanaPortalDataReader} from '@sqd-sdk/solana-stream'
-import sqlite3 from 'better-sqlite3'
+import Sqlite3 from 'better-sqlite3'
 
 async function main() {
     let portal = new PortalClient({
@@ -16,7 +16,7 @@ async function main() {
 
     let fromBlock = await portal.getHead().then((h) => (h?.number ?? 0) - 50_000)
 
-    const db = new sqlite3('./test.db')
+    const db = new Sqlite3('./test.db')
 
     await createSolanaPortalDataReader({
         portal,
@@ -86,15 +86,14 @@ async function main() {
         .pipeThrough(createProgressTracker('sqlite'))
         .pipeTo(
             new BlockWriter({
-                head: async () => undefined,
                 write: async () => {},
                 close: async () => {},
-                fork: async () => {},
+                fork: async () => undefined,
             }),
         )
 }
 
-function createSqliteWriter(db: sqlite3.Database) {
+function createSqliteWriter(db: Sqlite3.Database) {
     db.exec(`CREATE TABLE IF NOT EXISTS blocks (
             number INTEGER PRIMARY KEY,
             timestamp INTEGER,
@@ -108,10 +107,10 @@ function createSqliteWriter(db: sqlite3.Database) {
     const rollbackStmt = db.prepare<[number], void>('DELETE FROM blocks WHERE number >= ?')
 
     return new BlockWriter<{header: BlockRef & {timestamp: number}}>({
-        head: async () => headStmt.get(),
-        write: async ({blocks, finalizedHead}) => {
-            if (blocks.length > 0) {
-                const values = blocks
+        init: async () => headStmt.get(),
+        write: async ({data, finalizedHead}) => {
+            if (data.length > 0) {
+                const values = data
                     .map((block) => `(${block.header.number}, ${block.header.timestamp}, '${block.header.hash!}')`)
                     .join(', ')
                 const sql = `INSERT INTO blocks (number, timestamp, hash) VALUES ${values}`
@@ -121,7 +120,7 @@ function createSqliteWriter(db: sqlite3.Database) {
             await new Promise((resolve) => setTimeout(resolve, 0))
         },
         fork: async (refs) => {
-            db.transaction(() => {
+            return db.transaction(() => {
                 const blocks = headsStmt.all(refs[0].number)
                 for (let i = 0; i < refs.length; i++) {
                     const ref = refs[i]
@@ -139,13 +138,14 @@ function createSqliteWriter(db: sqlite3.Database) {
                     }
                     blocks.shift()
                 }
-            })
+                return blocks[0]
+            })()
         },
         close: async () => {},
     })
 }
 
-function createSqliteReader(db: sqlite3.Database) {
+function createSqliteReader(db: Sqlite3.Database) {
     const headStmt = db.prepare<[], BlockRef>('SELECT number, hash FROM blocks ORDER BY number DESC LIMIT 1')
     const headsStmt = db.prepare<[number], BlockRef & {timestamp: number}>(
         'SELECT * FROM blocks WHERE number >= ? ORDER BY number ASC LIMIT 10000',
@@ -155,7 +155,6 @@ function createSqliteReader(db: sqlite3.Database) {
     )
     const blockStmt = db.prepare<[number], BlockRef>('SELECT * FROM blocks WHERE number = ?')
     return new BlockReader<{header: BlockRef & {timestamp: number}}>({
-        head: async () => headStmt.get(),
         read: async function* (req) {
             let head: BlockRef = {
                 number: req.range?.from ?? 0,
@@ -186,7 +185,7 @@ function createSqliteReader(db: sqlite3.Database) {
 
                 yield {
                     head,
-                    blocks: blocks.map((block) => ({
+                    data: blocks.map((block) => ({
                         header: block,
                     })),
                 }
@@ -201,16 +200,16 @@ function createProgressTracker(prefix: string) {
     const logger = createLogger(`sqd:${prefix}`)
 
     return transformer(async (batch) => {
-        if (batch.blocks.length > 0) {
-            const {blocks, finalizedHead, head} = batch
-            let lastBlock = blocks[blocks.length - 1].header
+        if (batch.data.length > 0) {
+            const {data, finalizedHead, head} = batch
+            let lastBlock = data[data.length - 1].header
             logger.info(
                 [
                     `[${new Date().toISOString()}] progress: ${lastBlock.number} / ${Math.max(
                         head?.number ?? -1,
                         lastBlock.number,
                     )}`,
-                    `blocks: ${blocks.length}`,
+                    `blocks: ${data.length}`,
                     `finalized: ${finalizedHead?.number}`,
                 ].join(', '),
             )

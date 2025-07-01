@@ -17,9 +17,9 @@ export interface DataSourceStreamOptions {
 }
 
 export interface BlockBatch<B extends BlockBase> {
-    blocks: B[]
+    data: B[]
     finalizedHead?: BlockRef
-    head?: BlockRef
+    head: BlockRef
 }
 
 export class ForkException extends Error {
@@ -53,34 +53,60 @@ export const isDataConsistencyError = (err: unknown): err is Error =>
     err instanceof Error && !!(err as Partial<DataConsistencyError>).isSqdDataConsistencyError
 
 export interface BlockSource<B extends BlockBase> {
-    head(): Promise<BlockRef | undefined>
+    init?(): Promise<BlockRef | undefined>
     read(req: DataSourceStreamOptions): AsyncIterable<BlockBatch<B>>
+    close?(): Promise<void>
 }
 
 export interface BlockSink<B extends BlockBase> {
-    head(): Promise<BlockRef | undefined>
+    init?(): Promise<BlockRef | undefined>
     write(batch: BlockBatch<B>): Promise<void>
-    close(): Promise<void>
-    fork?(refs: BlockRef[]): Promise<void>
+    fork?(refs: BlockRef[], head?: BlockRef): Promise<BlockRef | undefined>
+    close?(): Promise<void>
 }
 
 export class BlockReader<B extends BlockBase> {
-    constructor(private readonly source: BlockSource<B>) {}
+    private _constructed = false
+    protected _head: BlockRef | undefined
+
+    constructor(public readonly source: BlockSource<B>) {}
+
+    async head(): Promise<BlockRef | undefined> {
+        await this._ensureConstructed()
+        return this._head
+    }
 
     async *read(req: DataSourceStreamOptions): AsyncIterable<BlockBatch<B>> {
+        await this._ensureConstructed()
         for await (const batch of this.source.read(req)) {
+            this._head = batch.head
             yield batch
         }
     }
 
-    pipeTo(writer: BlockWriter<B>): Promise<void> {
-        return writer.write(this)
+    async _ensureConstructed(): Promise<void> {
+        if (!this._constructed && this.source.init) {
+            this._head = await this.source.init()
+            this._constructed = true
+        }
     }
 
-    pipeThrough<T extends BlockBase>(pair: BlockWriterReaderPair<B, T>): BlockReader<T> & {done: Promise<void>} {
-        const done = pair.writer.write(this)
-        Object.defineProperty(pair.reader, 'done', {value: done, enumerable: false})
-        return pair.reader as BlockReader<T> & {done: Promise<void>}
+    async pipeTo(writer: BlockWriter<B>): Promise<void> {
+        await this._ensureConstructed()
+        return pipeTo(this, writer)
+    }
+
+    pipeThrough<T extends BlockBase>(pair: BlockWriterReaderPair<B, T>): BlockReader<T> {
+        pipeTo(this, pair.writer).catch((e) => {
+            throw e
+        })
+
+        return pair.reader
+    }
+
+    async close(): Promise<void> {
+        await this._ensureConstructed()
+        await this.source.close?.()
     }
 }
 
@@ -89,78 +115,105 @@ export interface BlockWriterReaderPair<W extends BlockBase, R extends BlockBase>
     reader: BlockReader<R>
 }
 
-export interface BlockWriterOptions {
-    range?: Range
-}
-
 export class BlockWriter<B extends BlockBase> {
-    constructor(
-        private readonly sink: BlockSink<B>,
-        private readonly opts: BlockWriterOptions = {},
-    ) {}
+    private _constructed = false
+    private _head: BlockRef | undefined
 
-    head(): Promise<BlockRef | undefined> {
-        return this.sink.head()
+    constructor(public readonly sink: BlockSink<B>) {}
+
+    async head(): Promise<BlockRef | undefined> {
+        await this._ensureConstructed()
+        return this._head
     }
 
-    async write(reader: BlockReader<B>): Promise<void> {
-        while (true) {
-            const head = await this.sink.head()
-            const {from, parentHash} = head
-                ? this.opts.range
-                    ? head.number < this.opts.range.from
-                        ? {from: this.opts.range.from, parentHash: undefined}
-                        : {from: head.number + 1, parentHash: head.hash}
-                    : {from: head.number + 1, parentHash: head.hash}
-                : {from: this.opts.range?.from ?? 0, parentHash: undefined}
+    private async _ensureConstructed(): Promise<void> {
+        if (!this._constructed && this.sink.init) {
+            this._head = await this.sink.init()
+            this._constructed = true
+        }
+    }
 
+    async write(batch: BlockBatch<B>): Promise<void> {
+        await this._ensureConstructed()
+        await this.sink.write(batch)
+        if (batch.data.length > 0) {
+            this._head = last(batch.data).header
+        }
+    }
+
+    async fork(refs: BlockRef[]): Promise<void> {
+        await this._ensureConstructed()
+
+        if (this.sink.fork == null) {
+            throw new ForkException(refs)
+        }
+
+        this._head = await this.sink.fork(refs)
+    }
+}
+
+async function pipeTo<B extends BlockBase>(reader: BlockReader<B>, writer: BlockWriter<B>): Promise<void> {
+    // Ensure both reader and writer are constructed
+
+    try {
+        while (true) {
             try {
-                for await (const batch of reader.read({range: {from, to: this.opts.range?.to}, parentHash})) {
-                    await this.sink.write(batch)
+                const head = await writer.head()
+                const startFrom = head?.number ? head.number + 1 : 0
+
+                // Read from source and write chunks one by one
+                for await (const batch of reader.source.read({
+                    range: {from: startFrom},
+                    parentHash: head?.hash,
+                })) {
+                    await writer.write(batch)
                 }
-                return this.sink.close()
+
+                // Source exhausted - normal completion
+                break
             } catch (err) {
-                if (isForkException(err) && this.sink.fork) {
-                    await this.sink.fork(err.previousBlocks)
+                if (isForkException(err)) {
+                    // Fork exceptions restart the pipeline from new head
+                    await writer.fork(err.previousBlocks)
                     continue
                 }
+                // Other errors propagate up
                 throw err
             }
         }
+    } finally {
+        // Always cleanup, regardless of how we exit
+        await writer.sink.close?.().catch(() => {})
     }
 }
 
 export function transformer<In extends BlockBase, Out extends BlockBase>(
     transform: (batch: BlockBatch<In>) => BlockBatch<Out> | Promise<BlockBatch<Out>>,
 ): BlockWriterReaderPair<In, Out> {
-    let head: BlockRef | undefined
     let state: 'idle' | 'reading' | 'closed' = 'idle'
 
     let readyFuture: Future<void> = createFuture()
     let dataFuture: Future<BlockBatch<Out> | undefined> = createFuture()
-    let headFuture: Future<BlockRef | undefined> = createFuture()
+    let initFuture: Future<BlockRef | undefined> = createFuture()
 
     return {
         writer: new BlockWriter<In>({
-            head: async () => head ?? headFuture.promise(),
+            init: async () => initFuture.promise(),
             write: async (batch) => {
                 await readyFuture.promise()
                 const transformedBatch = await transform(batch)
-                if (transformedBatch.blocks.length > 0) {
-                    head = last(transformedBatch.blocks).header
-                }
                 dataFuture.resolve(transformedBatch)
                 dataFuture = createFuture()
             },
-            fork: async (refs) => {
+            fork: async (refs, head) => {
                 const forkError = new ForkException(refs)
                 readyFuture.reject(forkError)
                 dataFuture.reject(forkError)
 
                 state = 'idle'
-                head = undefined
-                headFuture.resolve(undefined)
-                headFuture = createFuture()
+
+                initFuture = createFuture()
+                return await initFuture.promise()
             },
             close: async () => {
                 if (state === 'closed') return
@@ -168,11 +221,10 @@ export function transformer<In extends BlockBase, Out extends BlockBase>(
                 state = 'closed'
                 readyFuture.reject(new Error('BlockTransformer closed'))
                 dataFuture.resolve(undefined)
-                headFuture.resolve(undefined)
+                initFuture.resolve(undefined)
             },
         }),
         reader: new BlockReader<Out>({
-            head: async () => head,
             read: async function* (req) {
                 if (state === 'closed') return
 
@@ -181,7 +233,7 @@ export function transformer<In extends BlockBase, Out extends BlockBase>(
                 }
 
                 state = 'reading'
-                headFuture.resolve(req.range ? {number: req.range.from - 1, hash: req.parentHash} : undefined)
+                initFuture.resolve(req.range ? {number: req.range.from - 1, hash: req.parentHash} : undefined)
 
                 while (true) {
                     if (state !== 'reading') break
@@ -205,9 +257,7 @@ export interface BlockFinalizerOptions {
     throwOnFork?: boolean
 }
 
-export function finalizer<B extends BlockBase>(
-    opts: BlockFinalizerOptions = {},
-): BlockWriterReaderPair<B, B> {
+export function finalizer<B extends BlockBase>(opts: BlockFinalizerOptions = {}): BlockWriterReaderPair<B, B> {
     let head: BlockRef | undefined
     let state: 'idle' | 'reading' | 'closed' = 'idle'
 
@@ -215,15 +265,15 @@ export function finalizer<B extends BlockBase>(
     let dataFuture: Future<BlockBatch<B> | undefined> = createFuture()
     let headFuture: Future<BlockRef | undefined> = createFuture()
 
-    const buffer: BlockBatch<B>['blocks'] = []
+    const buffer: B[] = []
 
     return {
         writer: new BlockWriter<B>({
-            head: async () => head ?? headFuture.promise(),
+            init: async () => head ?? headFuture.promise(),
             write: async (batch) => {
                 await readyFuture.promise()
 
-                buffer.push(...batch.blocks)
+                buffer.push(...batch.data)
                 const lastBlock = maybeLast(buffer)
 
                 if (opts.finalityConfirmation || batch.finalizedHead) {
@@ -232,10 +282,11 @@ export function finalizer<B extends BlockBase>(
                         : batch.finalizedHead!.number
                     const unfinalizedIndex = buffer.findIndex((block) => block.header.number > finalizedNumber)
                     if (unfinalizedIndex > 0) {
+                        const data = buffer.splice(0, unfinalizedIndex)
                         dataFuture.resolve({
-                            blocks: buffer.splice(0, unfinalizedIndex),
+                            data,
                             finalizedHead: batch.finalizedHead,
-                            head: batch.finalizedHead,
+                            head: last(data).header,
                         })
                         dataFuture = createFuture()
                     }
@@ -258,6 +309,8 @@ export function finalizer<B extends BlockBase>(
                     if (lastBlock.header.number === ref.number && lastBlock.header.hash !== ref.hash) buffer.pop()
                     if (lastBlock.header.number === ref.number && lastBlock.header.hash === ref.hash) break
                 }
+
+                return undefined
             },
             close: async () => {
                 if (state === 'closed') return
@@ -269,7 +322,7 @@ export function finalizer<B extends BlockBase>(
             },
         }),
         reader: new BlockReader<B>({
-            head: async () => head,
+            init: async () => head,
             read: async function* (req) {
                 if (state === 'closed') return
 
@@ -305,13 +358,107 @@ export interface BlockBatcherOptions<B extends BlockBase> {
 }
 
 export function batcher<B extends BlockBase>(opts: BlockBatcherOptions<B>): BlockWriterReaderPair<B, B> {
-    throw new Error('not implemented')
-}
+    const {minSize = 1, maxSize = 100, size = (batch) => batch.data.length, capacity = 1000} = opts
 
-export function concat<B extends BlockBase>(...readers: BlockReader<B>[]): BlockReader<B> {
-    throw new Error('not implemented')
-}
+    let head: BlockRef | undefined
+    let state: 'idle' | 'reading' | 'closed' = 'idle'
+    let readyFuture: Future<void> = createFuture()
+    let dataFuture: Future<BlockBatch<B> | undefined> = createFuture()
+    let headFuture: Future<BlockRef | undefined> = createFuture()
 
-export function fallback<B extends BlockBase>(...readers: BlockReader<B>[]): BlockReader<B> {
-    throw new Error('not implemented')
+    const buffer: B[] = []
+    let currentSize = 0
+
+    const flushBuffer = () => {
+        if (buffer.length === 0) return
+
+        const data = buffer.splice(0)
+        const batch: BlockBatch<B> = {
+            data,
+            head: last(data).header,
+        }
+        currentSize = 0
+        dataFuture.resolve(batch)
+        dataFuture = createFuture()
+    }
+
+    return {
+        writer: new BlockWriter<B>({
+            init: async () => head ?? headFuture.promise(),
+            write: async (batch) => {
+                await readyFuture.promise()
+
+                for (const block of batch.data) {
+                    if (currentSize >= capacity) {
+                        flushBuffer()
+                        await readyFuture.promise()
+                    }
+
+                    buffer.push(block)
+                    currentSize += size({data: [block], head: block.header})
+                    head = block.header
+
+                    if (buffer.length >= maxSize || currentSize >= capacity) {
+                        flushBuffer()
+                        await readyFuture.promise()
+                    }
+                }
+
+                if (batch.finalizedHead) {
+                    flushBuffer()
+                }
+            },
+            fork: async (refs) => {
+                buffer.length = 0
+                currentSize = 0
+                const forkError = new ForkException(refs)
+                readyFuture.reject(forkError)
+                dataFuture.reject(forkError)
+
+                state = 'idle'
+                head = undefined
+                headFuture.resolve(undefined)
+                headFuture = createFuture()
+
+                return undefined
+            },
+            close: async () => {
+                if (state === 'closed') return
+
+                flushBuffer()
+                state = 'closed'
+                readyFuture.reject(new Error('BlockBatcher closed'))
+                dataFuture.resolve(undefined)
+                headFuture.resolve(undefined)
+            },
+        }),
+        reader: new BlockReader<B>({
+            init: async () => head,
+            read: async function* (req) {
+                if (state === 'closed') return
+
+                if (state === 'reading') {
+                    throw new Error('BlockBatcher is already read')
+                }
+
+                state = 'reading'
+                headFuture.resolve(req.range ? {number: req.range.from - 1, hash: req.parentHash} : undefined)
+
+                while (true) {
+                    if (state !== 'reading') break
+
+                    readyFuture.resolve()
+
+                    const batch = await dataFuture.promise()
+                    if (batch === undefined) break
+
+                    if (batch.data.length >= minSize) {
+                        yield batch
+                    }
+
+                    readyFuture = createFuture()
+                }
+            },
+        }),
+    }
 }

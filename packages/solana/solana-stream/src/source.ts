@@ -32,7 +32,6 @@ export function createSolanaPortalDataReader<Q extends SolanaQueryOptions>(
     const headThrottler = new Throttler(async () => portal.getHead(), 5_000)
 
     return new BlockReader({
-        head: async () => portal.getHead(),
         read: async function* (opts) {
             let requestsBounded = applyRangeBound(requests, opts?.range)
 
@@ -54,11 +53,12 @@ export function createSolanaPortalDataReader<Q extends SolanaQueryOptions>(
                     for await (let batch of portal.getStream(query)) {
                         const lastBlock = maybeLast(batch.blocks)
                         yield {
-                            blocks: batch.blocks.map((b) => mapBlock(b, fields)) as BlockBatch<
-                                Block<GetFields<Q['fields']>>
-                            >['blocks'],
+                            data: batch.blocks.map((b) => mapBlock(b, fields)) as Block<GetFields<Q['fields']>>[],
                             finalizedHead: batch.finalizedHead,
-                            head: (head?.number ?? 0) > (lastBlock?.header.number ?? 0) ? head : lastBlock?.header,
+                            head:
+                                (head?.number ?? 0) > (lastBlock?.header.number ?? 0)
+                                    ? head!
+                                    : lastBlock?.header || {number: 0, hash: undefined},
                         }
 
                         if (lastBlock != null) {
