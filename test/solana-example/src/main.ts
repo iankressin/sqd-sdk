@@ -108,7 +108,7 @@ function createSqliteWriter(db: Sqlite3.Database) {
 
     return new BlockWriter<{header: BlockRef & {timestamp: number}}>({
         init: async () => headStmt.get(),
-        write: async ({data, finalizedHead}) => {
+        write: async ({data, finalizedHead, head}) => {
             if (data.length > 0) {
                 const values = data
                     .map((block) => `(${block.header.number}, ${block.header.timestamp}, '${block.header.hash!}')`)
@@ -120,26 +120,47 @@ function createSqliteWriter(db: Sqlite3.Database) {
             await new Promise((resolve) => setTimeout(resolve, 0))
         },
         fork: async (refs) => {
-            return db.transaction(() => {
-                const blocks = headsStmt.all(refs[0].number)
-                for (let i = 0; i < refs.length; i++) {
-                    const ref = refs[i]
-                    let block: BlockRef | undefined
-                    while (blocks.length > 0) {
-                        block = blocks[0]
-                        if (block.number >= ref.number) break
-                        blocks.shift()
+            const newHead = db.transaction(() => {
+                let rollbackPoint: number | undefined
+
+                if (refs.length > 0) {
+                    const minBlock = refs[0].number
+                    const maxBlock = refs[refs.length - 1].number
+                    const localBlocks = db
+                        .prepare<[number, number], BlockRef>(
+                            'SELECT number, hash FROM blocks WHERE number >= ? AND number <= ? ORDER BY number ASC',
+                        )
+                        .all(minBlock, maxBlock)
+
+                    const localBlockMap = new Map(localBlocks.map((block) => [block.number, block.hash]))
+                    for (const ref of refs) {
+                        const localHash = localBlockMap.get(ref.number)
+                        if (!localHash || localHash !== ref.hash) {
+                            rollbackPoint = ref.number
+                            break
+                        }
                     }
-                    if (block == null) break
-                    if (block.number > ref.number) continue
-                    if (block.number === ref.number && block.hash !== ref.hash) {
-                        rollbackStmt.run(block.number)
-                        break
+
+                    if (rollbackPoint === undefined) {
+                        const currentHead = headStmt.get()
+                        if (currentHead && currentHead.number > maxBlock) {
+                            rollbackPoint = maxBlock + 1
+                        }
                     }
-                    blocks.shift()
                 }
-                return blocks[0]
+
+                if (rollbackPoint !== undefined) {
+                    rollbackStmt.run(rollbackPoint)
+                }
+
+                const newHead = headStmt.get()
+                if (!newHead) {
+                    throw new Error('unable to rollback')
+                }
+
+                return newHead
             })()
+            return newHead
         },
         close: async () => {},
     })

@@ -61,7 +61,7 @@ export interface BlockSource<B extends BlockBase> {
 export interface BlockSink<B extends BlockBase> {
     init?(): Promise<BlockRef | undefined>
     write(batch: BlockBatch<B>): Promise<void>
-    fork?(refs: BlockRef[], head?: BlockRef): Promise<BlockRef | undefined>
+    fork?(refs: BlockRef[]): Promise<BlockRef | undefined>
     close?(): Promise<void>
 }
 
@@ -205,7 +205,7 @@ export function transformer<In extends BlockBase, Out extends BlockBase>(
                 dataFuture.resolve(transformedBatch)
                 dataFuture = createFuture()
             },
-            fork: async (refs, head) => {
+            fork: async (refs) => {
                 const forkError = new ForkException(refs)
                 readyFuture.reject(forkError)
                 dataFuture.reject(forkError)
