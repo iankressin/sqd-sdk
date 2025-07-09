@@ -64,6 +64,11 @@ export interface PortalStreamOptions {
     headPollInterval?: number
 }
 
+export type BlockRef = {
+    hash: string
+    number: number
+}
+
 export type PortalStreamData<B> = {
     blocks: B[]
     finalizedHead?: BlockRef
@@ -76,15 +81,6 @@ export type PortalQuery = {
     fromBlock?: number
     toBlock?: number
     parentBlockHash?: string
-}
-
-export type BlockRef = {
-    hash: string
-    number: number
-}
-
-export type PortalResponse = {
-    header: BlockRef
 }
 
 export class PortalClient {
@@ -129,7 +125,7 @@ export class PortalClient {
         return res.body ?? undefined
     }
 
-    getFinalizedStream<Q extends PortalQuery = PortalQuery, R extends PortalResponse = PortalResponse>(
+    getFinalizedStream<Q extends PortalQuery = PortalQuery, R = any>(
         query: Q,
         options?: PortalStreamOptions,
     ): PortalStream<R> {
@@ -156,10 +152,7 @@ export class PortalClient {
         )
     }
 
-    getStream<Q extends PortalQuery = PortalQuery, R extends PortalResponse = PortalResponse>(
-        query: Q,
-        options?: PortalStreamOptions,
-    ): PortalStream<R> {
+    getStream<Q extends PortalQuery = PortalQuery, R = any>(query: Q, options?: PortalStreamOptions): PortalStream<R> {
         let {
             headPollInterval = this.headPollInterval,
             minBytes = this.minBytes,
@@ -233,7 +226,7 @@ export class PortalClient {
     }
 }
 
-function createPortalStream<Q extends PortalQuery = PortalQuery, R extends PortalResponse = PortalResponse>(
+function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
     query: Q,
     options: Required<PortalStreamOptions>,
     requestStream: (

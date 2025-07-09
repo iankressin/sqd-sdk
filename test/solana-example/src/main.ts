@@ -1,8 +1,9 @@
 import {HttpClient} from '@sqd-sdk/core/http-client'
+import {last} from '@sqd-sdk/core/internal/misc'
 import {createLogger} from '@sqd-sdk/core/logger'
-import {BlockWriter, transformer, type BlockRef, BlockReader, ForkException, finalizer} from '@sqd-sdk/core/pipeline'
+import {DataWriter, transformer, ForkException, finalizer, DataReader, DataRef} from '@sqd-sdk/core/pipeline'
 import {PortalClient} from '@sqd-sdk/core/portal-client'
-import {createSolanaPortalDataReader} from '@sqd-sdk/solana-stream'
+import {BlockRef, createSolanaPortalDataReader, type SolanaPortalData} from '@sqd-sdk/solana-stream'
 import Sqlite3 from 'better-sqlite3'
 
 async function main() {
@@ -78,164 +79,191 @@ async function main() {
         },
     })
         .pipeThrough(createProgressTracker('portal'))
-        .pipeThrough(finalizer({finalityConfirmation: 1000}))
-        .pipeThrough({
-            writer: createSqliteWriter(db),
-            reader: createSqliteReader(db),
-        })
-        .pipeThrough(createProgressTracker('sqlite'))
+        .pipeThrough(finalizer({ref: BlockRef as any}))
+        .pipeThrough(createProgressTracker('finalizer'))
         .pipeTo(
-            new BlockWriter({
-                write: async () => {},
-                close: async () => {},
-                fork: async () => undefined,
-            }),
+            new DataWriter(
+                {
+                    write: async (batch) => {
+                        const head = batch.head
+                        const data = batch.data
+                        const values = data
+                            .map((block) => {
+                                const ref = BlockRef.get(block)
+                                return `(${ref.number}, ${ref.hash ? `'${ref.hash}'` : 'NULL'}, '${JSON.stringify(
+                                    block
+                                )}')`
+                            })
+                            .join(', ')
+                        const sql = `INSERT INTO blocks (number, hash, data) VALUES ${values}`
+                        db.exec(sql)
+                        return head
+                    },
+                    close: async () => {},
+                    fork: async () => undefined,
+                },
+                BlockRef
+            )
         )
 }
 
 function createSqliteWriter(db: Sqlite3.Database) {
     db.exec(`CREATE TABLE IF NOT EXISTS blocks (
             number INTEGER PRIMARY KEY,
-            timestamp INTEGER,
-            hash TEXT
+            hash TEXT,
+            data JSONB
         )`)
 
     const headStmt = db.prepare<[], BlockRef>('SELECT number, hash FROM blocks ORDER BY number DESC LIMIT 1')
     const headsStmt = db.prepare<[number], BlockRef>(
-        'SELECT number, hash FROM blocks WHERE number >= ? ORDER BY number ASC',
+        'SELECT number, hash FROM blocks WHERE number >= ? ORDER BY number ASC'
     )
     const rollbackStmt = db.prepare<[number], void>('DELETE FROM blocks WHERE number >= ?')
 
-    return new BlockWriter<{header: BlockRef & {timestamp: number}}>({
-        init: async () => headStmt.get(),
-        write: async ({data, finalizedHead, head}) => {
-            if (data.length > 0) {
-                const values = data
-                    .map((block) => `(${block.header.number}, ${block.header.timestamp}, '${block.header.hash!}')`)
-                    .join(', ')
-                const sql = `INSERT INTO blocks (number, timestamp, hash) VALUES ${values}`
-                db.exec(sql)
-            }
+    return new DataWriter<SolanaPortalData<any>>(
+        {
+            init: async () => {
+                const head = headStmt.get()
+                if (!head) return undefined
 
-            await new Promise((resolve) => setTimeout(resolve, 0))
-        },
-        fork: async (refs) => {
-            const newHead = db.transaction(() => {
-                let rollbackPoint: number | undefined
+                return {
+                    number: head.number,
+                    hash: head.hash,
+                }
+            },
+            write: async (batch, head) => {
+                await new Promise((resolve) => setTimeout(resolve, 0))
 
-                if (refs.length > 0) {
-                    const minBlock = refs[0].number
-                    const maxBlock = refs[refs.length - 1].number
-                    const localBlocks = db
-                        .prepare<[number, number], BlockRef>(
-                            'SELECT number, hash FROM blocks WHERE number >= ? AND number <= ? ORDER BY number ASC',
-                        )
-                        .all(minBlock, maxBlock)
+                if (batch.data.length > 0) {
+                    const values = batch.data
+                        .map((block) => {
+                            const ref = BlockRef.get(block)
+                            return `(${ref.number}, ${ref.hash ? `'${ref.hash}'` : 'NULL'}, '${JSON.stringify(block)}')`
+                        })
+                        .join(', ')
+                    const sql = `INSERT INTO blocks (number, hash, data) VALUES ${values}`
+                    db.exec(sql)
 
-                    const localBlockMap = new Map(localBlocks.map((block) => [block.number, block.hash]))
-                    for (const ref of refs) {
-                        const localHash = localBlockMap.get(ref.number)
-                        if (!localHash || localHash !== ref.hash) {
-                            rollbackPoint = ref.number
-                            break
+                    return BlockRef.get(last(batch.data))
+                }
+
+                return head
+            },
+            fork: async (refs) => {
+                const newHead = db.transaction(() => {
+                    let rollbackPoint: BlockRef | undefined
+
+                    if (refs.length > 0) {
+                        const minBlock = refs[0]
+                        const maxBlock = refs[refs.length - 1]
+                        const localBlocks = db
+                            .prepare<[number], {number: number; hash: string; data: unknown}>(
+                                'SELECT number, hash, data FROM blocks WHERE number >= ? ORDER BY number ASC'
+                            )
+                            .all(minBlock.number)
+
+                        const localBlockMap = new Map(localBlocks.map((block) => [block.number, block]))
+                        for (const ref of refs) {
+                            const localBlock = localBlockMap.get(ref.number)
+                            if (!localBlock || BlockRef.compare(localBlock, ref) !== DataRef.Compare.Equal) {
+                                rollbackPoint = ref
+                                break
+                            }
+                        }
+
+                        if (rollbackPoint === undefined) {
+                            const currentHead = headStmt.get()
+                            if (currentHead && currentHead.number > maxBlock.number) {
+                                rollbackPoint = maxBlock
+                            }
                         }
                     }
 
-                    if (rollbackPoint === undefined) {
-                        const currentHead = headStmt.get()
-                        if (currentHead && currentHead.number > maxBlock) {
-                            rollbackPoint = maxBlock + 1
-                        }
+                    if (rollbackPoint !== undefined) {
+                        rollbackStmt.run(rollbackPoint.number)
                     }
-                }
 
-                if (rollbackPoint !== undefined) {
-                    rollbackStmt.run(rollbackPoint)
-                }
+                    const newHead = headStmt.get()
+                    if (!newHead) {
+                        throw new Error('unable to rollback')
+                    }
 
-                const newHead = headStmt.get()
-                if (!newHead) {
-                    throw new Error('unable to rollback')
-                }
-
+                    return newHead
+                })()
                 return newHead
-            })()
-            return newHead
+            },
+            close: async () => {},
         },
-        close: async () => {},
-    })
+        BlockRef
+    )
 }
 
 function createSqliteReader(db: Sqlite3.Database) {
     const headStmt = db.prepare<[], BlockRef>('SELECT number, hash FROM blocks ORDER BY number DESC LIMIT 1')
-    const headsStmt = db.prepare<[number], BlockRef & {timestamp: number}>(
-        'SELECT * FROM blocks WHERE number >= ? ORDER BY number ASC LIMIT 10000',
+    const headsStmt = db.prepare<[number], BlockRef & {data: unknown}>(
+        'SELECT number, hash, data FROM blocks WHERE number >= ? ORDER BY number ASC LIMIT 10000'
     )
-    const headsStmt2 = db.prepare<[number, number], BlockRef & {timestamp: number}>(
-        'SELECT * FROM blocks WHERE number >= ? AND number <= ? ORDER BY number ASC LIMIT 10000',
-    )
-    const blockStmt = db.prepare<[number], BlockRef>('SELECT * FROM blocks WHERE number = ?')
-    return new BlockReader<{header: BlockRef & {timestamp: number}}>({
-        read: async function* (req) {
-            let head: BlockRef = {
-                number: req.range?.from ?? 0,
-                hash: req.parentHash,
-            }
+    return new DataReader<SolanaPortalData<any>>(
+        {
+            init: async () => headStmt.get(),
+            read: async function* (req) {
+                let head = req.offset
 
-            while (true) {
-                const blocks = db.transaction(() => {
-                    const blocks =
-                        req.range?.to == null ? headsStmt.all(head.number) : headsStmt2.all(head.number, req.range?.to)
-                    if (head.hash && (blocks[0].number > head.number || blocks[0].hash !== head.hash)) {
-                        const refs = db
-                            .prepare<[number], BlockRef>('SELECT number, hash FROM blocks WHERE number <= ? LIMIT 100')
-                            .all(head.number)
-                        throw new ForkException(refs)
+                while (true) {
+                    await new Promise((resolve) => setTimeout(resolve, 0))
+
+                    const blocks = db.transaction(() => {
+                        const blocks = headsStmt.all(head?.number ?? 0)
+                        if (blocks.length === 0) return []
+
+                        //if (head && (blocks[0].number > head.number || blocks[0].hash !== head.hash)) {
+                        //    const refs = db
+                        //        .prepare<[number], BlockRef>(
+                        //            'SELECT number, hash FROM blocks WHERE number <= ? LIMIT 100'
+                        //        )
+                        //        .all(head.number)
+                        //    throw new ForkException(refs)
+                        //}
+
+                        return blocks.slice(1)
+                    })()
+                    if (blocks.length === 0) continue
+
+                    const lastBlock = blocks[blocks.length - 1]
+                    head = lastBlock ? lastBlock : head || {number: 0, hash: undefined}
+
+                    yield {
+                        head,
+                        data: blocks.map((b) => JSON.parse(b.data as string)) as SolanaPortalData<any>['item'][],
                     }
-
-                    return blocks.slice(1)
-                })()
-
-                const lastBlock = blocks[blocks.length - 1]
-                head = lastBlock
-                    ? {
-                          number: lastBlock.number,
-                          hash: lastBlock.hash,
-                      }
-                    : head
-
-                yield {
-                    head,
-                    data: blocks.map((block) => ({
-                        header: block,
-                    })),
                 }
-
-                await new Promise((resolve) => setTimeout(resolve, 0))
-            }
+            },
         },
-    })
+        BlockRef
+    )
 }
 
 function createProgressTracker(prefix: string) {
     const logger = createLogger(`sqd:${prefix}`)
 
-    return transformer(async (batch) => {
-        if (batch.data.length > 0) {
-            const {data, finalizedHead, head} = batch
-            let lastBlock = data[data.length - 1].header
-            logger.info(
-                [
-                    `[${new Date().toISOString()}] progress: ${lastBlock.number} / ${Math.max(
-                        head?.number ?? -1,
-                        lastBlock.number,
-                    )}`,
-                    `blocks: ${data.length}`,
-                    `finalized: ${finalizedHead?.number}`,
-                ].join(', '),
-            )
-        }
-        return batch
+    return transformer({
+        refIn: BlockRef,
+        refOut: BlockRef,
+        transform: async (batch) => {
+            if (batch.data.length > 0) {
+                const {data, finalizedHead, head} = batch
+                let lastBlock = last(data)
+                let lastBlockRef = BlockRef.get(lastBlock)
+                logger.info(
+                    [
+                        `[${new Date().toISOString()}] progress: ${lastBlockRef.number} / ${head?.number}`,
+                        `blocks: ${data.length}`,
+                        `finalized: ${finalizedHead?.number}`,
+                    ].join(', ')
+                )
+            }
+            return batch
+        },
     })
 }
 
