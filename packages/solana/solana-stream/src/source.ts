@@ -1,5 +1,5 @@
 import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range/index'
-import {DataReader, DataRef} from '@sqd-sdk/core/pipeline'
+import {DataBatch, DataReader, DataRef} from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {
     type Block,
@@ -27,7 +27,7 @@ export interface BlockRef {
     hash?: string
 }
 
-export const BlockRef: DataRef<SolanaPortalData<any>> = {
+export const blockRef: DataRef<SolanaPortalData<any>> = {
     get(block: {header: {number: number; hash?: string}}): BlockRef {
         return {number: block.header.number, hash: block.header.hash}
     },
@@ -54,64 +54,62 @@ export function createSolanaPortalDataReader<Q extends SolanaQueryOptions>(
 
     const headThrottler = new Throttler(async () => portal.getHead(), 5_000)
 
-    return new DataReader<SolanaPortalData<Q>>(
-        {
-            read: async function* (req) {
-                let {number, hash} = req.offset ?? {}
-                let requestsBounded = applyRangeBound(requests, {
-                    from: number != null ? number + 1 : 0,
-                })
+    return new DataReader<SolanaPortalData<Q>>({
+        read: async function* (req) {
+            let {number, hash} = req.offset ?? {}
+            let requestsBounded = applyRangeBound(requests, {
+                from: number != null ? number + 1 : 0,
+            })
 
-                for (let request of requestsBounded) {
-                    let fromBlock = request.range.from
-                    let parentHash = hash
-                    while (true) {
-                        if (request.range.to != null && fromBlock > request.range.to) break
+            for (let request of requestsBounded) {
+                let fromBlock = request.range.from
+                let parentHash = hash
+                while (true) {
+                    if (request.range.to != null && fromBlock > request.range.to) break
 
-                        let query = {
-                            type: 'solana',
-                            fromBlock,
-                            parentHash,
-                            toBlock: request.range.to,
-                            fields,
-                            ...request.request,
-                        }
+                    let query = {
+                        type: 'solana',
+                        fromBlock,
+                        parentHash,
+                        toBlock: request.range.to,
+                        fields,
+                        ...request.request,
+                    }
 
-                        for await (let batch of portal.getStream(query)) {
-                            const portalHead = await headThrottler.get()
-                            const lastBlock = maybeLast(batch.blocks)
+                    for await (let batch of portal.getStream(query)) {
+                        const portalHead = await headThrottler.get()
+                        const lastBlock = maybeLast(batch.blocks)
 
-                            const head: BlockRef =
-                                portalHead != null
-                                    ? lastBlock != null
-                                        ? lastBlock.number >= portalHead.number
-                                            ? BlockRef.get(lastBlock)
-                                            : portalHead
+                        const head: BlockRef =
+                            portalHead != null
+                                ? lastBlock != null
+                                    ? lastBlock.number >= portalHead.number
+                                        ? blockRef.get(lastBlock)
                                         : portalHead
-                                    : {number: 0}
+                                    : portalHead
+                                : {number: 0}
 
-                            yield {
-                                data: batch.blocks.map((b) => mapBlock(b, fields)) as SolanaPortalData<Q>['item'][],
-                                finalizedHead: batch.finalizedHead,
-                                head,
-                            }
+                        yield new DataBatch<SolanaPortalData<Q>>({
+                            data: batch.blocks.map((b) => mapBlock(b, fields)),
+                            finalizedHead: batch.finalizedHead,
+                            head,
+                            ref: blockRef,
+                        })
 
-                            if (lastBlock != null) {
-                                fromBlock = lastBlock.header.number + 1
-                            }
-                        }
-
-                        if (query.fromBlock === fromBlock) {
-                            // FIXME: wierd, but lets put it here for now
-                            assert(request.range.to != null)
-                            fromBlock = request.range.to + 1
+                        if (lastBlock != null) {
+                            fromBlock = lastBlock.header.number + 1
                         }
                     }
+
+                    if (query.fromBlock === fromBlock) {
+                        // FIXME: wierd, but lets put it here for now
+                        assert(request.range.to != null)
+                        fromBlock = request.range.to + 1
+                    }
                 }
-            },
+            }
         },
-        BlockRef
-    )
+    })
 }
 
 export function mapBlock<F extends ReqiredFieldSelection>(rawBlock: unknown, fields: ReqiredFieldSelection): Block<F> {

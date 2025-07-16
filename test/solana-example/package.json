@@ -7,12 +7,10 @@
   },
   "dependencies": {
     "@aws-sdk/core": "^3.775.0",
+    "@clickhouse/client": "^1.11.2",
     "@sqd-sdk/core": "workspace:^",
     "@sqd-sdk/solana-stream": "workspace:^",
-    "better-sqlite3": "^12.2.0",
-    "dotenv": "^16.4.7",
-    "drizzle-orm": "^0.41.0",
-    "viem": "^2.23.15"
+    "dotenv": "^16.4.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

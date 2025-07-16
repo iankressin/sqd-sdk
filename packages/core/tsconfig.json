@@ -14,7 +14,7 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "skipLibCheck": true,
-        "declarationDir": "lib"
+        "declarationDir": "lib",
     },
     "include": ["src"],
     "exclude": ["node_modules"]

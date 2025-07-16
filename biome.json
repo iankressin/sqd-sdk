@@ -21,7 +21,8 @@
                 "noExplicitAny": "off",
                 "noConfusingVoidType": "off",
                 "noCatchAssign": "off",
-                "noUnsafeDeclarationMerging": "off"
+                "noUnsafeDeclarationMerging": "off",
+                "noMisleadingInstantiator": "off"
             }
         },
         "ignore": [

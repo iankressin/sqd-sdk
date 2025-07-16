@@ -1,3 +1,5 @@
+export type Awaitable<T> = T | PromiseLike<T>
+
 export type Simplify<T> = {[K in keyof T]: T[K]} & {}
 
 export type Distribute<T> = T extends any ? T : never
