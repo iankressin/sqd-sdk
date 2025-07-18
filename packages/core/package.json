@@ -5,10 +5,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "files": [
-        "lib",
-        "src"
-    ],
+    "files": ["lib", "src"],
     "scripts": {
         "build": "rm -rf lib && tsup"
     },
@@ -65,12 +62,12 @@
         },
         "./pipeline": {
             "import": {
-                "types": "./lib/pipeline.d.mts",
-                "default": "./lib/pipeline.mjs"
+                "types": "./lib/pipeline/index.d.mts",
+                "default": "./lib/pipeline/index.mjs"
             },
             "require": {
-                "types": "./lib/pipeline.d.ts",
-                "default": "./lib/pipeline.js"
+                "types": "./lib/pipeline/index.d.ts",
+                "default": "./lib/pipeline/index.js"
             }
         },
         "./validation": {

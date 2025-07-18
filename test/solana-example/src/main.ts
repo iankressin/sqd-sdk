@@ -1,9 +1,20 @@
 import {createClient} from '@clickhouse/client'
 import {HttpClient} from '@sqd-sdk/core/http-client'
+import {last} from '@sqd-sdk/core/internal/misc'
 import {createLogger} from '@sqd-sdk/core/logger'
-import {DataWriter, transformer, type Data, type DataBatch, type DataWriterReaderPair} from '@sqd-sdk/core/pipeline'
+import {
+    type DataDuplex,
+    DataWriter,
+    transformer,
+    type Data,
+    type DataBatch,
+    target,
+    type UnfinalizedDataTarget,
+    type DataRefer,
+    type DataRef,
+} from '@sqd-sdk/core/pipeline'
 import {PortalClient} from '@sqd-sdk/core/portal-client'
-import {createSolanaPortalDataReader} from '@sqd-sdk/solana-stream'
+import {blockRefer, type SolanaPortalData, solanaPortalDataSource} from '@sqd-sdk/solana-stream'
 
 async function main() {
     let portal = new PortalClient({
@@ -20,7 +31,7 @@ async function main() {
         url: 'http://localhost:8123',
     })
 
-    await createSolanaPortalDataReader({
+    await solanaPortalDataSource({
         portal,
         query: {
             fields: {
@@ -86,67 +97,61 @@ interface StateManager<T extends Data<any, any>> {
 function createStateWriter<T extends Data<any, any>>(opts: {
     state: StateManager<T>
     transact: (batch: DataBatch<T>) => Promise<unknown>
-    rollback: (block: T['ref']) => Promise<unknown>
-}): DataWriter<T> {
+    rollback: (block: DataRef<T>) => Promise<unknown>
+}): UnfinalizedDataTarget<T> {
     const {state, transact, rollback} = opts
 
-    return new DataWriter<T>({
-        init: async () => {
+    return target<T>({
+        writer: async () => {
             const head = await state.get()
             if (head) {
                 await rollback(head)
             }
 
-            return head
-        },
-        write: async (batch) => {
-            await transact(batch)
-            await state.set(batch.last)
+            return {
+                offset: head,
+                write: async (batch) => {
+                    await transact(batch)
 
-            return batch.last
-        },
-        fork: async (refs) => {
-            const newHead = await state.fork(refs)
-
-            if (newHead) {
-                await rollback(newHead)
+                    if (batch.data.length > 0) {
+                        await state.set(batch.data[batch.data.length - 1].ref)
+                    }
+                },
+                fork: async (fork) => {
+                    const newHead = await state.fork(fork.heads)
+                    if (newHead) {
+                        await rollback(newHead)
+                    }
+                    return newHead
+                },
             }
-
-            return newHead
         },
     })
 }
 
-function createProgressTracker<T extends Data<any, {number: number; hash?: string}>>(
-    prefix: string
-): DataWriterReaderPair<T, T> {
+function createProgressTracker<T extends SolanaPortalData<any>>(prefix: string) {
     const logger = createLogger(`sqd:${prefix}`)
 
-    return transformer({
+    return transformer<T, T>({
         transform: async (batch) => {
             if (batch.data.length > 0) {
-                const {data, finalizedHead, head, meta} = batch
+                const {data, head} = batch
                 logger.info(
-                    meta,
                     [
-                        `[${new Date().toISOString()}] progress: ${batch.last?.number ?? 0} / ${head.number ?? 0}`,
+                        `[${new Date().toISOString()}] progress: ${last(data)?.header.number ?? 0} / ${
+                            head.number ?? 0
+                        }`,
                         `blocks: ${data.length}`,
                     ].join(', ')
                 )
             }
             return batch
         },
+        fork: async (fork) => {
+            return fork
+        },
+        ref: blockRefer as DataRefer<T>,
     })
 }
-
-new DataWriter({
-    write: async (batch: DataBatch<Data<number, number>>) => {
-        console.log(batch)
-    },
-    fork: async (refs) => {
-        console.log(refs)
-        return 1
-    },
-}).finalized
 
 main()
