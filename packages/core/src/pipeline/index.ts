@@ -3,18 +3,20 @@ import {last} from '../internal/misc'
 import {ForkException, isForkException} from './errors'
 import type {
     Data,
-    DataFork,
-    DataRefer,
-    DataRef,
     DataBatch,
-    DataReader,
-    DataWriter,
-    DataItem,
     DataDuplex,
+    DataFork,
+    DataReader,
+    DataRef,
+    DataRefer,
     DataSource,
     DataTarget,
+    DataWriter,
+    FinalizedDataSource,
+    FinalizedDataTarget,
+    UnfinalizedDataSource,
+    UnfinalizedDataTarget,
     UnfinalizedDataWriter,
-    Finalization,
 } from './types'
 
 export * from './types'
@@ -32,21 +34,18 @@ export interface UnfinalizedDataSourceConfig<T extends Data> {
     finalized?: false
 }
 
-export type DataSourceConfig<T extends Data, F extends boolean> = (
-    | FinalizedDataSourceConfig<T>
-    | UnfinalizedDataSourceConfig<T>
-) & {finalized?: F}
-
-export function source<T extends Data, F extends boolean = false>(options: DataSourceConfig<T, F>): DataSource<T, F> {
-    const {reader, ref, finalized = false} = options
-
+function finalizedSource<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
+}): FinalizedDataSource<T> {
+    const {reader, ref} = config
     let currentDataReader: DataReader<T> | undefined
     let currentOffset: DataRef<T> | undefined
 
     return {
         ref,
-        finalized,
-        async read(offset) {
+        finalized: true,
+        async read(offset?: DataRef<T>) {
             if (ref.compare(offset, currentOffset) !== 'gt') {
                 await currentDataReader?.close?.()
                 currentDataReader = undefined
@@ -68,7 +67,10 @@ export function source<T extends Data, F extends boolean = false>(options: DataS
             await currentDataReader?.close?.()
             currentDataReader = undefined
         },
-        pipeThrough<U extends Data>(duplex: DataDuplex<T, U>) {
+        pipeThrough<U extends Data, F extends boolean>(duplex: {
+            target: DataTarget<T>
+            source: DataSource<U, F>
+        }): DataSource<U, F> {
             pipe(this, duplex.target).catch((e) => {
                 throw e
             })
@@ -80,40 +82,88 @@ export function source<T extends Data, F extends boolean = false>(options: DataS
     }
 }
 
-let a = source({
-    reader: async () => {
-        return {
-            read: async () => null,
-        }
-    },
-    ref: {
-        get: () => {},
-        compare: () => 'eq',
-    },
-}).finalized
+function unfinalizedSource<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
+}): UnfinalizedDataSource<T> {
+    const {reader, ref} = config
+    let currentDataReader: DataReader<T> | undefined
+    let currentOffset: DataRef<T> | undefined
 
-export interface UnfinalizedDataTargetConfig<T extends Data> {
-    writer: () => PromiseLike<UnfinalizedDataWriter<T>>
-    finalized?: boolean
+    return {
+        ref,
+        finalized: false,
+        async read(offset?: DataRef<T>) {
+            if (ref.compare(offset, currentOffset) !== 'gt') {
+                await currentDataReader?.close?.()
+                currentDataReader = undefined
+                currentOffset = offset
+            }
+
+            if (!currentDataReader) {
+                currentDataReader = await reader(currentOffset)
+            }
+
+            const batch = await currentDataReader.read()
+            if (batch && batch.data.length > 0) {
+                currentOffset = ref.get(last(batch.data))
+            }
+
+            return batch
+        },
+        async close() {
+            await currentDataReader?.close?.()
+            currentDataReader = undefined
+        },
+        pipeThrough<U extends Data, F extends boolean>(duplex: {
+            target: UnfinalizedDataTarget<T>
+            source: DataSource<U, F>
+        }): DataSource<U, F> {
+            pipe(this, duplex.target).catch((e) => {
+                throw e
+            })
+            return duplex.source
+        },
+        pipeTo(target: UnfinalizedDataTarget<T>): Promise<void> {
+            return pipe(this, target)
+        },
+    }
 }
 
-export interface FinalizedDataTargetConfig<T extends Data> {
-    writer: () => PromiseLike<DataWriter<T>>
+export function source<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
+    finalized?: false
+}): UnfinalizedDataSource<T>
+export function source<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
     finalized: true
+}): FinalizedDataSource<T>
+export function source<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
+    finalized?: boolean
+}): FinalizedDataSource<T> | UnfinalizedDataSource<T>
+export function source<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
+    finalized?: boolean
+}): FinalizedDataSource<T> | UnfinalizedDataSource<T> {
+    return config.finalized === true
+        ? finalizedSource({reader: config.reader, ref: config.ref})
+        : unfinalizedSource({reader: config.reader, ref: config.ref})
 }
 
-export type DataTargetConfig<T extends Data, F extends boolean> = (
-    | FinalizedDataTargetConfig<T>
-    | UnfinalizedDataTargetConfig<T>
-) & {finalized?: F}
-
-export function target<T extends Data, F extends boolean>(options: DataTargetConfig<T, F>): DataTarget<T, F> {
-    const {writer, finalized} = options
+function finalizedTarget<T extends Data>(config: {
+    writer: () => PromiseLike<DataWriter<T> | UnfinalizedDataWriter<T>>
+}): FinalizedDataTarget<T> {
+    const {writer} = config
     let currentDataWriter: DataWriter<T> | undefined
     let currentOffset: DataRef<T> | undefined
 
     return {
-        finalized: finalized ?? false,
+        finalized: true,
         async head(): Promise<DataRef<T> | undefined> {
             if (!currentDataWriter) {
                 currentDataWriter = await writer()
@@ -131,10 +181,6 @@ export function target<T extends Data, F extends boolean>(options: DataTargetCon
             }
         },
         async fork(fork: DataFork<T>, ref: DataRefer<T>): Promise<DataRef<T> | undefined> {
-            if (!this.finalized) {
-                // TODO: should we throw ForkException or just an error?
-                throw new ForkException(fork)
-            }
             if (currentDataWriter) {
                 return await currentDataWriter.fork?.(fork, ref)
             }
@@ -145,6 +191,60 @@ export function target<T extends Data, F extends boolean>(options: DataTargetCon
             currentDataWriter = undefined
         },
     }
+}
+
+function unfinalizedTarget<T extends Data>(config: {
+    writer: () => PromiseLike<DataWriter<T> | UnfinalizedDataWriter<T>>
+}): UnfinalizedDataTarget<T> {
+    const {writer} = config
+    let currentDataWriter: DataWriter<T> | undefined
+    let currentOffset: DataRef<T> | undefined
+
+    return {
+        finalized: false,
+        async head(): Promise<DataRef<T> | undefined> {
+            if (!currentDataWriter) {
+                currentDataWriter = await writer()
+            }
+            return currentOffset ?? currentDataWriter.offset
+        },
+        async write(batch: DataBatch<T>, ref: DataRefer<T>): Promise<void> {
+            if (!currentDataWriter) {
+                currentDataWriter = await writer()
+                currentOffset = currentDataWriter.offset
+            }
+            await currentDataWriter.write(batch, ref)
+            if (batch && batch.data.length > 0) {
+                currentOffset = ref.get(last(batch.data))
+            }
+        },
+        async fork(fork: DataFork<T>, ref: DataRefer<T>): Promise<DataRef<T> | undefined> {
+            throw new ForkException(fork)
+        },
+        async close(): Promise<void> {
+            await currentDataWriter?.close?.()
+            currentDataWriter = undefined
+        },
+    }
+}
+
+export function target<T extends Data>(config: {
+    writer: () => PromiseLike<UnfinalizedDataWriter<T>>
+    finalized?: false
+}): UnfinalizedDataTarget<T>
+export function target<T extends Data>(config: {
+    writer: () => PromiseLike<DataWriter<T>>
+    finalized: true
+}): FinalizedDataTarget<T>
+export function target<T extends Data>(config: {
+    writer: () => PromiseLike<DataWriter<T> | UnfinalizedDataWriter<T>>
+    finalized?: boolean
+}): DataTarget<T>
+export function target<T extends Data>(config: {
+    writer: () => PromiseLike<DataWriter<T> | UnfinalizedDataWriter<T>>
+    finalized?: boolean
+}): FinalizedDataTarget<T> | UnfinalizedDataTarget<T> {
+    return config.finalized ? finalizedTarget(config) : unfinalizedTarget(config)
 }
 
 export async function pipe<T extends Data>(source: DataSource<T>, target: DataTarget<T>): Promise<void> {
@@ -183,8 +283,13 @@ export interface FinalizedTransformerConfig<T extends Data, U extends Data> {
 
 export function transformer<T extends Data, U extends Data>(
     config: UnfinalizedTransformerConfig<T, U>
+): {target: UnfinalizedDataTarget<U>; source: UnfinalizedDataSource<T>}
+export function transformer<T extends Data, U extends Data>(
+    config: FinalizedTransformerConfig<T, U>
+): {target: FinalizedDataTarget<U>; source: FinalizedDataSource<T>}
+export function transformer<T extends Data, U extends Data>(
+    config: UnfinalizedTransformerConfig<T, U> | FinalizedTransformerConfig<T, U>
 ): DataDuplex<T, U>
-export function transformer<T extends Data, U extends Data>(config: FinalizedTransformerConfig<T, U>): DataDuplex<T, U>
 export function transformer<T extends Data, U extends Data>(
     config: UnfinalizedTransformerConfig<T, U> | FinalizedTransformerConfig<T, U>
 ): DataDuplex<T, U> {
@@ -195,7 +300,7 @@ export function transformer<T extends Data, U extends Data>(
     let readyFuture: Future<void> = createFuture<void>()
 
     const targetInstance = target<T>({
-        finalized: config.finalized ?? false,
+        finalized: config.finalized,
         writer: async () => {
             const offset = await headFuture?.promise()
             return {
@@ -222,7 +327,7 @@ export function transformer<T extends Data, U extends Data>(
     })
 
     const sourceInstance = source<U>({
-        finalized: config.finalized ?? false,
+        finalized: config.finalized,
         reader: async (offset) => {
             headFuture?.resolve(offset)
             return {
@@ -248,40 +353,4 @@ export function transformer<T extends Data, U extends Data>(
         target: targetInstance,
         source: sourceInstance,
     }
-}
-
-export function finalizer<T extends Data>(ref: DataRefer<T>, options?: {throwOnFork?: boolean}): DataDuplex<T, T> {
-    const buffer: DataItem<T>[] = []
-
-    return transformer<T, T>({
-        transform: async (batch) => {
-            buffer.push(...batch.data)
-
-            if (batch.finalizedHead && batch.data.length > 0) {
-                const lastRef = ref.get(last(batch.data))
-                const unfinalizedIndex =
-                    ref.compare(lastRef, batch.finalizedHead) === 'gt'
-                        ? buffer.findIndex((item) => ref.compare(ref.get(item), batch.finalizedHead!) === 'gt')
-                        : buffer.length
-
-                if (unfinalizedIndex > 0) {
-                    const data = buffer.splice(0, unfinalizedIndex)
-                    return {
-                        data,
-                        finalizedHead: batch.finalizedHead,
-                        head: batch.head,
-                    }
-                }
-            }
-
-            return {
-                data: [],
-                head: batch.head,
-            }
-        },
-        fork: async (fork) => {
-            return fork
-        },
-        ref,
-    })
 }

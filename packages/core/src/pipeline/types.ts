@@ -75,16 +75,16 @@ export interface UnfinalizedDataSource<T extends Data> extends BaseDataSource<T>
 export interface FinalizedDataSource<T extends Data> extends BaseDataSource<T> {
     finalized: true
     pipeThrough<U extends Data, F extends boolean>(duplex: {
-        target: DataSource<T>
+        target: DataTarget<T>
         source: DataSource<U, F>
     }): DataSource<U, F>
     pipeTo(target: DataTarget<T>): PromiseLike<void>
 }
 
-export type DataSource<T extends Data, F extends boolean = any> = (
-    | FinalizedDataSource<T>
-    | UnfinalizedDataSource<T>
-) & {finalized: F}
+export type DataSource<T extends Data, F extends boolean = any> = Extract<
+    FinalizedDataSource<T> | UnfinalizedDataSource<T>,
+    {finalized: F}
+>
 
 export interface FinalizedDataTarget<T extends Data> extends BaseDataTarget<T> {
     finalized: true
@@ -96,14 +96,9 @@ export interface UnfinalizedDataTarget<T extends Data> extends BaseDataTarget<T>
     fork(fork: DataFork<T>, ref: DataRefer<T>): PromiseLike<DataRef<T> | undefined>
 }
 
-export type DataTarget<T extends Data, F extends boolean = any> = Extract<
-    FinalizedDataTarget<T> | UnfinalizedDataTarget<T>,
-    {finalized: F}
->
+export type DataTarget<T extends Data> = FinalizedDataTarget<T> | UnfinalizedDataTarget<T>
 
 export interface DataDuplex<T extends Data, U extends Data> {
     target: DataTarget<T>
     source: DataSource<U>
 }
-
-export type Finalization<F> = {finalized?: F extends true ? true : false}

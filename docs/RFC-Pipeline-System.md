@@ -17,52 +17,99 @@ export interface Data<I = unknown, R = unknown> {
     ref: R     // Reference for ordering/comparison
 }
 
+// Helper types for extracting item and reference types
+export type DataItem<D extends Data> = D['item']
+export type DataRef<D extends Data> = D['ref']
+
 // Batch of data items with metadata
-export interface DataBatch<D extends Data = Data> {
-    readonly data: DataItem<D>[]           // Array of data items
-    readonly finalizedHead?: DataRef<D>    // Last finalized reference
-    readonly head: DataRef<D>              // Current head reference  
+export interface DataBatch<T extends Data> {
+    readonly data: DataItem<T>[]           // Array of data items
+    readonly finalizedHead?: DataRef<T>    // Last finalized reference
+    readonly head: DataRef<T>              // Current head reference  
 }
 
 // Fork information when divergence is detected
-export interface DataFork<D extends Data = Data> {
-    readonly heads: DataRef<D>[]           // All competing head references
+export interface DataFork<T extends Data> {
+    readonly heads: DataRef<T>[]           // All competing head references
 }
 
 // Reference comparison interface
-export interface DataRefer<D extends Data = Data> {
-    get(ref: DataItem<D>): DataRef<D>                           // Get ref from item
-    compare(a: DataRef<D>, b: DataRef<D>): 'ls' | 'eq' | 'gt' | 'fk'  // Compare refs
+export interface DataRefer<T extends Data> {
+    get(ref: DataItem<T>): DataRef<T>                           // Get ref from item
+    compare(a: DataRef<T>, b: DataRef<T>): 'ls' | 'eq' | 'gt' | 'fk'  // Compare refs
 }
 ```
 
-### Component Architecture
+### Finalized vs Unfinalized System
 
-The system consists of three main components:
+The system distinguishes between finalized and unfinalized data processing:
 
-1. **DataSource**: Provides data with internal reader management
-2. **DataTarget**: Consumes data and handles fork resolution  
-3. **DataDuplex**: Combines target and source for transformations
+- **Finalized**: Can handle forks internally without throwing exceptions
+- **Unfinalized**: Throws `ForkException` when forks are detected, requiring external handling
 
 ## Core Interfaces
 
+### Data Source Types
+
 ```typescript
-// Data source - provides data, handles offset management internally
-export interface DataSource<T extends Data> {
+// Base source interface
+interface BaseDataSource<T extends Data> {
     ref: DataRefer<T>                                        // Reference system
-    read(offset?: DataRef<T>): Promise<DataBatch<T> | null>  // Read next batch
-    close(): Promise<void>                                   // Clean up resources
-    pipeThrough<U extends Data>(duplex: DataDuplex<T, U>): DataSource<U>  // Chain operations
-    pipeTo(target: DataTarget<T>): Promise<void>             // Execute to target
+    read(offset?: DataRef<T>): PromiseLike<DataBatch<T> | null>  // Read next batch
+    close(): PromiseLike<void>                              // Clean up resources
 }
 
-// Data target - receives data, handles forks
-export interface DataTarget<T extends Data> {
-    head(): Promise<DataRef<T> | undefined>                       // Get current head
-    write(batch: DataBatch<T>, ref: DataRefer<T>): Promise<void>  // Process batch
-    fork(fork: DataFork<T>, ref: DataRefer<T>): Promise<DataRef<T> | undefined>  // Handle fork
-    close(): Promise<void>                                        // Clean up
+// Unfinalized data source - can only pipe to unfinalized targets
+export interface UnfinalizedDataSource<T extends Data> extends BaseDataSource<T> {
+    finalized: false
+    pipeThrough<U extends Data, F extends boolean>(duplex: {
+        target: UnfinalizedDataTarget<T>
+        source: DataSource<U, F>
+    }): DataSource<U, F>
+    pipeTo(target: UnfinalizedDataTarget<T>): PromiseLike<void>
 }
+
+// Finalized data source - can pipe to any target
+export interface FinalizedDataSource<T extends Data> extends BaseDataSource<T> {
+    finalized: true
+    pipeThrough<U extends Data, F extends boolean>(duplex: {
+        target: DataTarget<T>
+        source: DataSource<U, F>
+    }): DataSource<U, F>
+    pipeTo(target: DataTarget<T>): PromiseLike<void>
+}
+
+// Union type with finalized flag extraction
+export type DataSource<T extends Data, F extends boolean = any> = Extract<
+    FinalizedDataSource<T> | UnfinalizedDataSource<T>,
+    {finalized: F}
+>
+```
+
+### Data Target Types
+
+```typescript
+// Base target interface
+interface BaseDataTarget<T extends Data> {
+    head(): PromiseLike<DataRef<T> | undefined>                       // Get current head
+    write(batch: DataBatch<T>, ref: DataRefer<T>): PromiseLike<void>  // Process batch
+    close(): PromiseLike<void>                                        // Clean up
+}
+
+// Finalized target - has optional fork handling
+export interface FinalizedDataTarget<T extends Data> extends BaseDataTarget<T> {
+    finalized: true
+    fork?(fork: DataFork<T>, ref: DataRefer<T>): PromiseLike<DataRef<T> | undefined>
+}
+
+// Unfinalized target - requires fork handling
+export interface UnfinalizedDataTarget<T extends Data> extends BaseDataTarget<T> {
+    finalized: false
+    fork(fork: DataFork<T>, ref: DataRefer<T>): PromiseLike<DataRef<T> | undefined>
+}
+
+// Union type
+export type DataTarget<T extends Data> = FinalizedDataTarget<T> | UnfinalizedDataTarget<T>
 
 // Data duplex - combines target and source for transformations
 export interface DataDuplex<T extends Data, U extends Data> {
@@ -76,64 +123,93 @@ export interface DataDuplex<T extends Data, U extends Data> {
 ```typescript
 // Data reader interface - provides data with lifecycle management
 export interface DataReader<T extends Data> {
-    read(): Promise<DataBatch<T> | null>
-    close(): Promise<void>
+    read(): PromiseLike<DataBatch<T> | null>
+    close?(): PromiseLike<void>
 }
 
-// Data writer interface - consumes data with lifecycle management
+// Base data writer interface
 export interface DataWriter<T extends Data> {
     offset?: DataRef<T>
-    write(batch: DataBatch<T>, ref: DataRefer<T>): Promise<void>
-    fork(fork: DataFork<T>, ref: DataRefer<T>): Promise<DataRef<T> | undefined>
-    close(): Promise<void>
+    write(batch: DataBatch<T>, ref: DataRefer<T>): PromiseLike<void>
+    fork?(fork: DataFork<T>, ref: DataRefer<T>): PromiseLike<DataRef<T> | undefined>
+    close?(): PromiseLike<void>
+}
+
+// Unfinalized writer - requires fork handling
+export interface UnfinalizedDataWriter<T extends Data> extends DataWriter<T> {
+    fork(fork: DataFork<T>, ref: DataRefer<T>): PromiseLike<DataRef<T> | undefined>
 }
 ```
 
 ## Factory Functions
 
 ```typescript
-// Create a data source from options
-export function source<T extends Data, F extends boolean>(
-    options: DataSourceOptions<T, F>
-): DataSource<T>
-
-// Create a data target from options  
-export function target<T extends Data, F extends boolean>(
-    options: DataTargetOptions<T, F>
-): DataTarget<T>
-
-// Options interfaces
-export interface DataSourceOptions<T extends Data, F extends boolean> {
-    reader: (offset?: DataRef<T>) => DataReader<T>
+// Create unfinalized data source
+export function source<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
     ref: DataRefer<T>
-    finalized?: F
-}
+    finalized?: false
+}): UnfinalizedDataSource<T>
 
-export interface DataTargetOptions<T extends Data, F extends boolean> {
-    writer: () => DataWriter<T>
-    finalized?: F
-}
+// Create finalized data source  
+export function source<T extends Data>(config: {
+    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
+    ref: DataRefer<T>
+    finalized: true
+}): FinalizedDataSource<T>
 
+// Create unfinalized data target
+export function target<T extends Data>(config: {
+    writer: () => PromiseLike<UnfinalizedDataWriter<T>>
+    finalized?: false
+}): UnfinalizedDataTarget<T>
+
+// Create finalized data target
+export function target<T extends Data>(config: {
+    writer: () => PromiseLike<DataWriter<T>>
+    finalized: true
+}): FinalizedDataTarget<T>
+```
+
+## Reader Utilities
+
+```typescript
 // Factory utilities
-export const DataReader = {
-    fromAsync: <T extends Data>(iterator: AsyncIterator<DataBatch<T>>) => DataReader<T>
+export namespace DataReader {
+    export function fromAsync<T extends Data>(
+        iterator: AsyncIterableIterator<DataBatch<T>>
+    ): DataReader<T>
 }
 ```
 
 ## Pipeline Operations
 
 ```typescript
-// Transform data batches
-export function transformer<T extends Data, U extends Data>(
-    fn: (batch: DataBatch<T>) => Promise<DataBatch<U>>,
+// Transform data batches - unfinalized version
+export interface UnfinalizedTransformerConfig<T extends Data, U extends Data> {
+    transform: (batch: DataBatch<T>) => Promise<DataBatch<U>>
+    fork: (fork: DataFork<T>, ref: DataRefer<T>) => Promise<DataFork<U>>
+    flush?: () => Promise<DataBatch<U>>
     ref: DataRefer<U>
-): DataDuplex<T, U>
+    finalized?: false
+}
 
-// Finalize data (handle partial batch accumulation)  
-export function finalizer<T extends Data>(
-    ref: DataRefer<T>,
-    options?: { throwOnFork?: boolean }
-): DataDuplex<T, T>
+// Transform data batches - finalized version
+export interface FinalizedTransformerConfig<T extends Data, U extends Data> {
+    transform: (batch: DataBatch<T>) => Promise<DataBatch<U>>
+    fork?: (fork: DataFork<T>, ref: DataRefer<T>) => Promise<DataFork<U>>
+    flush?: () => Promise<DataBatch<U>>
+    ref: DataRefer<U>
+    finalized: true
+}
+
+export function transformer<T extends Data, U extends Data>(
+    config: UnfinalizedTransformerConfig<T, U>
+): {target: UnfinalizedDataTarget<T>; source: UnfinalizedDataSource<U>}
+
+export function transformer<T extends Data, U extends Data>(
+    config: FinalizedTransformerConfig<T, U>
+): {target: FinalizedDataTarget<T>; source: FinalizedDataSource<U>}
 
 // Execute pipeline with automatic fork handling
 export async function pipe<T extends Data>(
@@ -142,35 +218,75 @@ export async function pipe<T extends Data>(
 ): Promise<void>
 ```
 
+## Fork Exception Handling
+
+```typescript
+export class ForkException<D extends Data> extends Error {
+    readonly isSqdForkException = true
+    readonly fork: DataFork<D>
+    
+    constructor(fork: DataFork<D>)
+}
+
+export const isForkException = <D extends Data>(err: unknown): err is ForkException<D>
+```
+
 ## Usage Patterns
 
 ### Basic Pipeline Construction
 
 ```typescript
-// Create source with reader factory
+// Create unfinalized source with reader factory
 const dataSource = source({
   reader: (offset?) => createReader(offset),
-  ref: blockRef
+  ref: blockRef,
+  finalized: false  // default
 })
 
-// Create target with writer factory  
+// Create unfinalized target with writer factory  
 const dataTarget = target({
-  writer: () => createWriter()
+  writer: () => createWriter(),
+  finalized: false  // default
 })
 
 // Execute pipeline
 await pipe(dataSource, dataTarget)
 ```
 
+### Finalized Pipeline
+
+```typescript
+// Create finalized source that handles forks internally
+const dataSource = source({
+  reader: (offset?) => createReader(offset),
+  ref: blockRef,
+  finalized: true
+})
+
+// Create finalized target with optional fork handling
+const dataTarget = target({
+  writer: () => createWriter(),
+  finalized: true
+})
+
+await pipe(dataSource, dataTarget)
+```
+
 ### Transformation Pipeline
 
 ```typescript
+const transformerDuplex = transformer({
+  transform: async (batch) => processedBatch,
+  fork: async (fork, ref) => transformedFork,
+  ref: outputRef,
+  finalized: false
+})
+
 source({
   reader: readerFactory,
   ref: inputRef
 })
-  .pipeThrough(transformer(processor, outputRef))
-  .pipeThrough(finalizer(outputRef))
+  .pipeThrough(transformerDuplex)
   .pipeTo(target({
     writer: writerFactory
   }))
@@ -183,7 +299,11 @@ source({
 const processedSource = source({
   reader,
   ref: inputRef
-}).pipeThrough(transformer(processor, outputRef))
+}).pipeThrough(transformer({
+  transform: processor,
+  fork: forkHandler,
+  ref: outputRef
+}))
 
 await Promise.all([
   processedSource.pipeTo(target({ writer: primaryWriter })),
@@ -192,9 +312,23 @@ await Promise.all([
 ])
 ```
 
+### Using Reader Utilities
+
+```typescript
+// Create reader from async iterator
+const reader = DataReader.fromAsync(asyncIterator)
+
+const dataSource = source({
+  reader: () => reader,
+  ref: blockRef
+})
+```
+
 ## Fork Handling
 
-The system uses exception-based fork detection:
+The system uses two approaches for fork detection based on the finalized flag:
+
+### Unfinalized Fork Handling (Exception-based)
 
 1. Normal processing continues until a fork is detected
 2. `ForkException` interrupts the flow with recovery information  
@@ -202,12 +336,18 @@ The system uses exception-based fork detection:
 4. Source automatically resumes from the recovery point
 
 ```typescript
-// Fork recovery flow
+// Fork recovery flow for unfinalized targets
 1. Source reads data → Target processes
-2. Fork detected → ForkException thrown
-3. Target resolves fork → Returns recovery offset
-4. Source restarts → Processing continues
+2. Fork detected → ForkException thrown with fork information
+3. Target.fork() resolves fork → Returns recovery offset  
+4. Source restarts from recovery offset → Processing continues
 ```
+
+### Finalized Fork Handling (Method-based)
+
+1. Finalized targets can optionally implement fork handling
+2. Forks are handled through the `fork()` method call
+3. No exceptions are thrown during normal operation
 
 ## Implementation Details
 
@@ -215,31 +355,34 @@ The system uses exception-based fork detection:
 
 - **DataSource**: Manages reader lifecycle and offset tracking internally
 - **DataTarget**: Tracks current head position and manages writer state
-- **Transformations**: Use buffer-based approach with proper cleanup
+- **Transformations**: Use future-based coordination between target and source components
 
 ### Reference Flow
 
 - Each operation receives its input ref from the previous operation
-- Each operation only needs to specify its output ref  
+- Each operation specifies its output ref in the configuration
 - References flow naturally from source to target through the pipeline
 
 ### Error Handling
 
-- Fork exceptions carry sufficient context for recovery decisions
-- Automatic restart from resolved points
+- Unfinalized targets throw `ForkException` when forks occur
+- Finalized targets handle forks through optional `fork()` method
+- Automatic restart from resolved points in unfinalized mode
 - Proper resource cleanup on errors
 
 ## Best Practices
 
-1. **Use Options Pattern**: Always use structured options for factory functions
-2. **Manage References**: Let references flow naturally, only specify output refs in transformations
-3. **Resource Cleanup**: Always implement proper close() methods
-4. **State Isolation**: Keep transformation state isolated and cleanable
-5. **Error Boundaries**: Handle fork exceptions at appropriate pipeline boundaries
+1. **Choose Finalization Strategy**: Use `finalized: true` for targets that can handle forks internally, `finalized: false` for simpler targets that rely on exception-based handling
+2. **Use Overloaded Factory Functions**: TypeScript will enforce correct usage based on the `finalized` flag
+3. **Manage References**: Specify output refs in transformer configurations
+4. **Resource Cleanup**: Always implement proper `close()` methods
+5. **State Isolation**: Keep transformation state isolated and cleanable
+6. **Fork Handling**: Implement appropriate fork handling for your use case
 
 ## Performance Considerations
 
 - Reader and writer factories are called as needed for lifecycle management
-- Internal buffering in transformations should be minimal
+- Internal buffering in transformations uses future-based coordination
 - Offset management is optimized for restart scenarios
 - Resource cleanup prevents memory leaks in long-running pipelines
+- The finalized/unfinalized system allows optimization based on fork handling needs
