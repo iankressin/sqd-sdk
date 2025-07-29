@@ -1,12 +1,12 @@
 import {bisect, maybeLast} from '@sqd-sdk/core/internal/misc'
-import type {Block, ReqiredFieldSelection, Transaction} from './types'
+import type {Block, RequiredFieldSelection, Transaction} from './types'
 
-export function setUpRelations(block: Block<ReqiredFieldSelection>): void {
+export function setUpRelations(block: Block<RequiredFieldSelection>): void {
     block.transactions.sort((a, b) => a.transactionIndex - b.transactionIndex)
     block.instructions.sort(instructionCompare)
     block.logs.sort((a, b) => a.transactionIndex - b.transactionIndex || a.logIndex - b.logIndex)
 
-    let txs: (Transaction<ReqiredFieldSelection> | undefined)[] = new Array(
+    let txs: (Transaction<RequiredFieldSelection> | undefined)[] = new Array(
         (maybeLast(block.transactions)?.transactionIndex ?? -1) + 1,
     )
     for (let tx of block.transactions) {

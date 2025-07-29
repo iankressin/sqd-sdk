@@ -25,7 +25,7 @@ export {
     TransactionFieldSelection,
 } from '@sqd-sdk/core/portal-client/solana'
 
-export function blockFromPartial<F extends base.ReqiredFieldSelection>(src: base.BlockPartial<F>): base.Block<F> {
+export function blockFromPartial<F extends base.RequiredFieldSelection>(src: base.BlockPartial<F>): base.Block<F> {
     // FIXME: why types are broken
     return Object.assign(new Block(), {
         header: Object.assign(new BlockHeader(), src.header),

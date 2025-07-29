@@ -87,4 +87,4 @@ export const REQUIRED_FIELDS = {
     },
 } as const satisfies Solana.FieldSelection
 
-export type ReqiredFieldSelection = typeof REQUIRED_FIELDS
+export type RequiredFieldSelection = typeof REQUIRED_FIELDS
