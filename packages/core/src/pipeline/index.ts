@@ -20,7 +20,6 @@ import type {
 } from './types'
 
 export * from './types'
-export * from './errors'
 
 async function pipe<T extends Data>(source: DataSource_<T>, target: DataTarget_<T>): Promise<void> {
     if (source.unfinalized && !target.unfinalized) {
