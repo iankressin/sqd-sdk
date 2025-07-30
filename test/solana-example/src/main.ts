@@ -1,6 +1,6 @@
 import {HttpClient} from '@sqd-sdk/core/http-client'
 import {type Data, type DataBatch, target, type UnfinalizedDataTarget, type DataRef} from '@sqd-sdk/core/pipeline'
-import {PortalClient} from '@sqd-sdk/core/portal-client'
+import {PortalClient} from '@sqd-sdk/core/portal'
 import {solanaPortalDataSource} from '@sqd-sdk/solana-stream'
 
 async function main() {
@@ -70,8 +70,9 @@ async function main() {
             unfinalized: true,
             writer: async () => {
                 return {
+                    offset: undefined,
                     write: async (batch) => {
-                        console.log(`${batch.next?.number}/${batch.head.number}`)
+                        console.log(`${batch.offset.number}/${batch.head.number}`)
                     },
                     fork: async (fork) => {
                         console.log(fork.heads[fork.heads.length - 1]?.number)
@@ -146,7 +147,7 @@ function createStateWriter<T extends Data<any, any>>(opts: {
 //         fork: async (fork) => {
 //             return fork
 //         },
-//         ref: blockRefer as DataRefer<T>,
+//         cursor: blockRefer as DataCursor<T>,
 //     })
 // }
 

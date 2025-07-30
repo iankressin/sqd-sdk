@@ -1,5 +1,5 @@
 import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range/index'
-import {type DataBatch, type DataRef, type DataRefer, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
+import {type DataBatch, type DataRef, type DataCursor, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {
     type Block,
@@ -12,7 +12,7 @@ import {
 import {getDataSchema} from './schema'
 import {setUpRelations} from './objects/relations'
 import {mergeDataRequests, type SolanaQueryOptions} from './query'
-import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal-client'
+import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal'
 import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal/selection'
 import {assert, last} from '@sqd-sdk/core/internal/misc'
 import {Throttler} from '@sqd-sdk/core/internal/throttler'
@@ -34,7 +34,7 @@ export interface SolanaPortalData<Q extends SolanaQueryOptions> {
     ref: BlockRef
 }
 
-export const blockRefer: DataRefer<SolanaPortalData<any>> = {
+export const blockRefer = {
     get(block: {header: {number: number; hash?: string}}): BlockRef {
         return {number: block.header.number, hash: block.header.hash}
     },
@@ -45,7 +45,7 @@ export const blockRefer: DataRefer<SolanaPortalData<any>> = {
         if (a.hash === b.hash) return 'eq'
         return 'fk'
     },
-}
+} satisfies DataCursor<SolanaPortalData<any>>
 
 function calculateHead(portalHead: BlockRef, lastBlock: BlockRef | undefined): BlockRef {
     if (!lastBlock) return portalHead
@@ -84,15 +84,17 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
                     const portalHead = await headThrottler.get()
                     if (!portalHead) continue // no data?
 
-                    const lastRef = batch.blocks.length > 0 ? blockRefer.get(last(batch.blocks)) : undefined
+                    // FIXME: investigate type issue
+                    const data = batch.blocks.map((b) => mapBlock(b, fields)) as Block<GetFields<Q['fields']>>[]
+
+                    const lastRef = blockRefer.get(last(data))
                     const head = calculateHead(portalHead, lastRef)
-                    const next = lastRef
 
                     yield {
-                        data: batch.blocks.map((b) => mapBlock(b, fields)),
+                        data,
                         finalizedHead: batch.finalizedHead,
-                        head: next && blockRefer.compare(next, head) === 'gt' ? next : head,
-                        next,
+                        head,
+                        offset: lastRef,
                     }
 
                     if (lastRef) {
@@ -111,21 +113,18 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
 
     return source<SolanaPortalData<Q>>({
         unfinalized: true,
-        reader: async (offset) => {
-            const stream = createDataStream(offset)
+        reader: async (opts) => {
+            const stream = createDataStream(opts.offset)
 
             return {
                 read: async () => {
                     const batch = await stream.next()
-                    if (batch.done) {
-                        throw new Error('No more data')
-                    }
-                    return batch.value
+                    return batch.done ? undefined : batch.value
                 },
                 close: async () => stream.return?.(),
             }
         },
-        ref: blockRefer,
+        cursor: blockRefer,
     })
 }
 

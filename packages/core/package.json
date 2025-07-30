@@ -40,24 +40,24 @@
                 "default": "./lib/http-client/index.js"
             }
         },
-        "./portal-client": {
+        "./portal": {
             "import": {
-                "types": "./lib/portal-client/index.d.mts",
-                "default": "./lib/portal-client/index.mjs"
+                "types": "./lib/portal/index.d.mts",
+                "default": "./lib/portal/index.mjs"
             },
             "require": {
-                "types": "./lib/portal-client/index.d.ts",
-                "default": "./lib/portal-client/index.js"
+                "types": "./lib/portal/index.d.ts",
+                "default": "./lib/portal/index.js"
             }
         },
-        "./portal-client/solana": {
+        "./portal/solana": {
             "import": {
-                "types": "./lib/portal-client/query/solana.d.mts",
-                "default": "./lib/portal-client/query/solana.mjs"
+                "types": "./lib/portal/query/solana.d.mts",
+                "default": "./lib/portal/query/solana.mjs"
             },
             "require": {
-                "types": "./lib/portal-client/query/solana.d.ts",
-                "default": "./lib/portal-client/query/solana.js"
+                "types": "./lib/portal/query/solana.d.ts",
+                "default": "./lib/portal/query/solana.js"
             }
         },
         "./pipeline": {

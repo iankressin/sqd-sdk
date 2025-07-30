@@ -23,7 +23,7 @@ export {
     TokenBalanceFieldSelection,
     TransactionFields,
     TransactionFieldSelection,
-} from '@sqd-sdk/core/portal-client/solana'
+} from '@sqd-sdk/core/portal/solana'
 
 export function blockFromPartial<F extends base.RequiredFieldSelection>(src: base.BlockPartial<F>): base.Block<F> {
     // FIXME: why types are broken
@@ -180,7 +180,7 @@ export class Instruction {
         if (this.data == null) {
             throw new Error('.data field is not available')
         }
-        this.#d8 = getInstructionDescriptor(this as {data: Base58})
+        this.#d8 = getInstructionDescriptor(this)
         return this.#d8
     }
 }

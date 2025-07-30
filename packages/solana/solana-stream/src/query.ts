@@ -1,4 +1,4 @@
-import type * as Solana from '@sqd-sdk/core/portal-client/solana'
+import type * as Solana from '@sqd-sdk/core/portal/solana'
 import {mergeSelection, type MergeSelection} from '@sqd-sdk/core/internal/selection'
 import {applyRangeBound, mergeRangeRequests, type Range, type RangeRequest} from '@sqd-sdk/core/internal/range/index'
 
@@ -11,7 +11,7 @@ export {
     BalanceRequest,
     TokenBalanceRequest,
     RewardRequest,
-} from '@sqd-sdk/core/portal-client/solana'
+} from '@sqd-sdk/core/portal/solana'
 
 export type RequestOptions<R> = {range?: Range; request: R}
 export type LogRequestOptions = RequestOptions<Solana.LogRequest>
@@ -127,7 +127,7 @@ export function mergeRequests(...requests: RangeRequest<Solana.DataRequest>[]): 
 
 export function mergeQueries<T extends SolanaQueryOptions, U extends SolanaQueryOptions>(
     a: T,
-    b: U,
+    b: U
 ): MergeQueryOptions<T, U>
 export function mergeQueries<T extends readonly SolanaQueryOptions[]>(...queries: T): MergeQueryOptionsAll<T>
 export function mergeQueries<T extends readonly SolanaQueryOptions[]>(...queries: T) {

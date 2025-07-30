@@ -1,4 +1,4 @@
-import {last} from '../internal/misc'
+import {withAbort} from '../internal/misc'
 import {isForkException} from './errors'
 import type {
     Data,
@@ -6,114 +6,117 @@ import type {
     DataFork,
     DataReader,
     DataRef,
-    DataRefer,
+    DataCursor,
     DataWriter,
     UnfinalizedDataWriter,
-    DataSource as DataSourceType,
+    DataSource as DataSource_,
     UnfinalizedDataSource,
     FinalizedDataSource,
-    DataTarget as DataTargetType,
+    DataTarget as DataTarget_,
     UnfinalizedDataTarget,
     FinalizedDataTarget,
-    DataDuplex,
+    DataReaderOptions,
+    DataWriterOptions,
 } from './types'
 
 export * from './types'
 export * from './errors'
 
-async function pipe<T extends Data>(source: DataSourceType<T>, target: DataTargetType<T>): Promise<void> {
-    while (true) {
-        const offset = await target.head()
-        let batch: DataBatch<T> | undefined
-        try {
-            batch = await source.read(offset)
-        } catch (err) {
-            if (!isForkException<T>(err)) throw err
-            if (!source.unfinalized) {
-                throw new Error('Got fork exception from non-unfinalized source')
-            }
-            if (!target.unfinalized) {
-                throw new Error('Got fork exception for non-unfinalized target')
-            }
-            await target.fork(err.fork)
-            continue
-        }
-        if (!batch) break
-        await target.write(batch)
+async function pipe<T extends Data>(source: DataSource_<T>, target: DataTarget_<T>): Promise<void> {
+    if (source.unfinalized && !target.unfinalized) {
+        throw new TypeError('Cannot pipe from unfinalized DataSource to finalized DataTarget')
+    }
+
+    try {
+        await target.write({cursor: source.cursor}, (opts) => source.read(opts))
+    } finally {
+        await source.close?.().catch(() => {})
+        await target.close?.().catch(() => {})
     }
 }
 
 export interface FinalizedDataSourceConfig<T extends Data> {
-    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
-    ref: DataRefer<T>
+    reader: (opts: DataReaderOptions<T>) => PromiseLike<DataReader<T>>
+    cursor: DataCursor<T>
     unfinalized?: false
 }
 
 export interface UnfinalizedDataSourceConfig<T extends Data> {
-    reader: (offset?: DataRef<T>) => PromiseLike<DataReader<T>>
-    ref: DataRefer<T>
+    reader: (opts: DataReaderOptions<T>) => PromiseLike<DataReader<T>>
+    cursor: DataCursor<T>
     unfinalized: true
 }
 
 class DataSource<T extends Data> {
     readonly unfinalized: boolean
-    readonly ref: DataRefer<T>
+    readonly cursor: DataCursor<T>
 
-    private _currentDataReader: DataReader<T> | undefined
-    private _currentOffset: DataRef<T> | undefined
+    private _state: 'opened' | 'locked' | 'closed' = 'opened'
+    private _abortController: AbortController | undefined
 
     constructor(config: FinalizedDataSourceConfig<T> | UnfinalizedDataSourceConfig<T>) {
-        this.unfinalized = !!config.unfinalized
-        this.ref = config.ref
+        const {reader, cursor, unfinalized} = config
+
+        this.unfinalized = !!unfinalized
+        this.cursor = cursor
 
         Object.assign(this, {
-            _reader: config.reader,
+            _reader: reader,
         })
     }
 
-    private _reader(offset?: DataRef<T>): Promise<DataReader<T>> {
+    private _reader(opts: DataReaderOptions<T>): Promise<DataReader<T>> {
         throw new Error('Not implemented')
     }
 
-    async read(offset?: DataRef<T>): Promise<DataBatch<T>> {
-        if (
-            offset !== this._currentOffset &&
-            (offset == null || this._currentOffset == null || this.ref.compare(offset, this._currentOffset) !== 'eq')
-        ) {
-            await this.close()
-        }
-        this._currentOffset = offset
-
-        if (!this._currentDataReader) {
-            this._currentDataReader = await this._reader(this._currentOffset)
+    async *read(opts: DataReaderOptions<T>): AsyncIterable<DataBatch<T>> {
+        if (this._state === 'closed') {
+            throw new Error('DataSource is closed')
         }
 
-        const batch = await this._currentDataReader.read()
-        if (batch && batch.data.length > 0) {
-            this._currentOffset = this.ref.get(last(batch.data))
+        if (this._state === 'locked') {
+            throw new Error('DataSource is already locked')
         }
+        this._state = 'locked'
 
-        if (!batch.next) {
-            await this.close()
+        this._abortController = new AbortController()
+        const reader = await this._reader(opts)
+        try {
+            while (true) {
+                const batch = await withAbort(() => reader.read(), this._abortController.signal)
+                if (!batch) break
+                yield batch
+            }
+        } catch (err) {
+            if (!isForkException<T>(err)) throw err
+            if (!this.unfinalized) {
+                throw new TypeError('Got fork exception in finalized DataSource')
+            }
+            throw err
+        } finally {
+            await reader.close?.().catch(() => {})
+            this._abortController = undefined
+            if (this._state === 'locked') {
+                this._state = 'opened'
+            }
         }
-
-        return batch
     }
 
-    pipeThrough<U extends DataSourceType<any>>(duplex: {target: DataTargetType<T>; source: U}): U {
+    pipeThrough<U extends DataSource_<any>>(duplex: {target: DataTarget_<T>; source: U}): U {
         pipe(this, duplex.target).catch((err) => {
             throw err
         })
         return duplex.source
     }
 
-    pipeTo(target: DataTargetType<T>): Promise<void> {
+    pipeTo(target: DataTarget_<T>): Promise<void> {
         return pipe(this, target)
     }
 
-    async close(): Promise<void> {
-        await this._currentDataReader?.close?.()
-        this._currentDataReader = undefined
+    async close(reason?: any): Promise<void> {
+        if (this._state === 'closed') return
+        this._state = 'closed'
+        this._abortController?.abort(reason)
     }
 }
 
@@ -121,10 +124,10 @@ export function source<T extends Data>(config: UnfinalizedDataSourceConfig<T>): 
 export function source<T extends Data>(config: FinalizedDataSourceConfig<T>): FinalizedDataSource<T>
 export function source<T extends Data>(
     config: FinalizedDataSourceConfig<T> | UnfinalizedDataSourceConfig<T>
-): DataSourceType<T>
+): DataSource_<T>
 export function source<T extends Data>(
     config: FinalizedDataSourceConfig<T> | UnfinalizedDataSourceConfig<T>
-): DataSourceType<T> {
+): DataSource_<T> {
     return new DataSource(config)
 }
 
@@ -141,8 +144,8 @@ export interface FinalizedDataTargetConfig<T extends Data> {
 class DataTarget<T extends Data> {
     readonly unfinalized: boolean
 
-    private currentDataWriter: DataWriter<T> | UnfinalizedDataWriter<T> | undefined
-    private currentOffset: DataRef<T> | undefined
+    private _state: 'opened' | 'locked' | 'closed' = 'opened'
+    private _abortController: AbortController | undefined
 
     constructor(config: FinalizedDataTargetConfig<T> | UnfinalizedDataTargetConfig<T>) {
         this.unfinalized = !!config.unfinalized
@@ -150,53 +153,61 @@ class DataTarget<T extends Data> {
         Object.assign(this, {
             _writer: config.writer,
         })
+    }
 
-        if (this.unfinalized) {
-            Object.assign(this, {
-                fork: async (fork: DataFork<T>): Promise<DataRef<T> | undefined> => {
-                    const dataWriter = await this.ensureDataWriter()
-                    if (!dataWriter.fork) {
-                        throw new TypeError('Missing fork method in unfinalized data writer')
+    private _writer(opts: DataWriterOptions<T>): Promise<DataWriter<T>> {
+        throw new Error('Not implemented')
+    }
+
+    async write(
+        opts: DataWriterOptions<T>,
+        read: (opts: DataReaderOptions<T>) => AsyncIterable<DataBatch<T>>
+    ): Promise<void> {
+        if (this._state === 'closed') {
+            throw new Error('DataTarget is closed')
+        }
+
+        if (this._state === 'locked') {
+            throw new Error('DataTarget is already locked')
+        }
+        this._state = 'locked'
+
+        this._abortController = new AbortController()
+        const writer = await this._writer(opts)
+        try {
+            await withAbort(async () => {
+                let offset = writer.offset
+                while (true) {
+                    try {
+                        for await (const batch of read({offset})) {
+                            await writer.write(batch)
+                        }
+                        break
+                    } catch (err) {
+                        if (!isForkException<T>(err)) throw err
+                        if (!this.unfinalized) {
+                            throw new TypeError('Got fork exception in finalized DataTarget')
+                        }
+                        if (!writer.fork) {
+                            throw new TypeError('Missing fork method in unfinalized DataWriter')
+                        }
+                        offset = await writer.fork(err.fork)
                     }
-                    this.currentOffset = await dataWriter.fork(fork)
-                    return this.currentOffset
-                },
-            })
+                }
+            }, this._abortController.signal)
+        } finally {
+            await writer.close?.()
+            this._abortController = undefined
+            if (this._state === 'locked') {
+                this._state = 'opened'
+            }
         }
     }
 
-    private _writer(): Promise<DataWriter<T>> {
-        throw new Error('Not implemented')
-    }
-
-    private async ensureDataWriter(): Promise<DataWriter<T>> {
-        if (!this.currentDataWriter) {
-            this.currentDataWriter = await this._writer()
-        }
-        return this.currentDataWriter
-    }
-
-    async head(): Promise<DataRef<T> | undefined> {
-        const dataWriter = await this.ensureDataWriter()
-        return this.currentOffset ?? dataWriter.offset
-    }
-
-    async write(batch: DataBatch<T>): Promise<void> {
-        const dataWriter = await this.ensureDataWriter()
-        this.currentOffset = this.currentOffset ?? dataWriter.offset
-        await dataWriter.write(batch)
-        if (batch && batch.data.length > 0) {
-            this.currentOffset = batch.next
-        }
-    }
-
-    async close(): Promise<void> {
-        await this.currentDataWriter?.close?.()
-        this.currentDataWriter = undefined
-    }
-
-    fork(_: DataFork<T>): Promise<DataRef<T> | undefined> {
-        throw new Error('Not implemented')
+    async close(reason?: any): Promise<void> {
+        if (this._state === 'closed') return
+        this._state = 'closed'
+        this._abortController?.abort(reason)
     }
 }
 
@@ -204,18 +215,18 @@ export function target<T extends Data>(config: UnfinalizedDataTargetConfig<T>): 
 export function target<T extends Data>(config: FinalizedDataTargetConfig<T>): FinalizedDataTarget<T>
 export function target<T extends Data>(
     config: FinalizedDataTargetConfig<T> | UnfinalizedDataTargetConfig<T>
-): DataTargetType<T>
+): DataTarget_<T>
 export function target<T extends Data>(
     config: FinalizedDataTargetConfig<T> | UnfinalizedDataTargetConfig<T>
-): DataTargetType<T> {
+): DataTarget_<T> {
     return new DataTarget(config)
 }
 
 export interface UnfinalizedTransformerConfig<T extends Data, U extends Data> {
     transform: (batch: DataBatch<T>) => Promise<DataBatch<U>>
-    fork: (fork: DataFork<T>, ref: DataRefer<T>) => Promise<DataFork<U>>
+    fork: (fork: DataFork<T>, cursor: DataCursor<T>) => Promise<DataFork<U>>
     flush?: () => Promise<DataBatch<U>>
-    ref: DataRefer<U>
+    cursor: DataCursor<U>
     unfinalized: true
 }
 
@@ -223,6 +234,7 @@ export interface FinalizedTransformerConfig<T extends Data, U extends Data> {
     transform: (batch: DataBatch<T>) => Promise<DataBatch<U>>
     fork?: (fork: DataFork<T>) => Promise<DataFork<U>>
     flush?: () => Promise<DataBatch<U>>
+    cursor: DataCursor<U>
     unfinalized: false
 }
 

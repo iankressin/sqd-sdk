@@ -1,5 +1,5 @@
 import {type HttpResponse, type BaseHttpClient, HttpError} from '../http-client'
-import {addErrorContext, last, unexpectedCase, wait, withErrorContext} from '../internal/misc'
+import {addErrorContext, last, unexpectedCase, wait, withAbort, withErrorContext} from '../internal/misc'
 import {createFuture, type Future} from '../internal/async'
 
 export interface PortalClientOptions {
@@ -127,7 +127,7 @@ export class PortalClient {
 
     getFinalizedStream<Q extends PortalQuery = PortalQuery, R = any>(
         query: Q,
-        options?: PortalStreamOptions,
+        options?: PortalStreamOptions
     ): PortalStream<R> {
         let {
             headPollInterval = this.headPollInterval,
@@ -148,7 +148,7 @@ export class PortalClient {
                 maxWaitTime,
                 request,
             },
-            async (q, o) => this.getStreamRequest('finalized-stream', q, o),
+            async (q, o) => this.getStreamRequest('finalized-stream', q, o)
         )
     }
 
@@ -172,7 +172,7 @@ export class PortalClient {
                 maxWaitTime,
                 request,
             },
-            async (q, o) => this.getStreamRequest('stream', q, o),
+            async (q, o) => this.getStreamRequest('stream', q, o)
         )
     }
 
@@ -188,7 +188,7 @@ export class PortalClient {
                 .catch(
                     withErrorContext({
                         query: query,
-                    }),
+                    })
                 )
 
             switch (res.status) {
@@ -231,8 +231,8 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
     options: Required<PortalStreamOptions>,
     requestStream: (
         query: Q,
-        options?: PortalRequestOptions,
-    ) => Promise<{finalizedHead?: BlockRef; stream?: ReadableStream<string[]>} | undefined>,
+        options?: PortalRequestOptions
+    ) => Promise<{finalizedHead?: BlockRef; stream?: ReadableStream<string[]>} | undefined>
 ): PortalStream<R> {
     let {headPollInterval, request, ...bufferOptions} = options
 
@@ -260,7 +260,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
                     {
                         ...request,
                         abort: abortSignal,
-                    },
+                    }
                 )
 
                 // we are on head
@@ -277,7 +277,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
                 reader = res.stream.getReader()
 
                 while (true) {
-                    let data = await withAbort(reader.read(), abortSignal)
+                    let data = await withAbort(() => reader!.read(), abortSignal)
                     if (data.done) break
                     if (data.value.length === 0) continue
 
@@ -291,7 +291,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
                         bytes += line.length
                     }
 
-                    await withAbort(buffer.put(blocks, bytes), abortSignal)
+                    await withAbort(() => buffer.put(blocks, bytes), abortSignal)
                 }
 
                 return
@@ -309,7 +309,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
 
     ingest().then(
         () => buffer.close(),
-        (err) => buffer.fail(err),
+        (err) => buffer.fail(err)
     )
 
     return {
@@ -406,14 +406,11 @@ class PortalStreamBuffer<B> {
 
         this.lastChunkTimestamp = Date.now()
         if (this.idleInterval == null) {
-            this.idleInterval = setInterval(
-                () => {
-                    if (Date.now() - this.lastChunkTimestamp >= this.maxIdleTime) {
-                        this.readyFuture.resolve()
-                    }
-                },
-                Math.ceil(this.maxIdleTime / 3),
-            )
+            this.idleInterval = setInterval(() => {
+                if (Date.now() - this.lastChunkTimestamp >= this.maxIdleTime) {
+                    this.readyFuture.resolve()
+                }
+            }, Math.ceil(this.maxIdleTime / 3))
             this.readyFuture.promise().finally(() => clearInterval(this.idleInterval))
             this.takeFuture.promise().finally(() => {
                 this.idleInterval = undefined
@@ -456,24 +453,6 @@ class PortalStreamBuffer<B> {
     }
 }
 
-function withAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
-        if (signal.aborted) {
-            reject(signal.reason || new Error('Aborted'))
-        }
-
-        signal.addEventListener('abort', abort, {once: true})
-
-        function abort() {
-            reject(signal.reason || new Error('Aborted'))
-        }
-
-        promise.then(resolve, reject).finally(() => {
-            signal.removeEventListener('abort', abort)
-        })
-    })
-}
-
 class LineSplitStream implements ReadableWritablePair<string[], string> {
     private line = ''
     private transform: TransformStream<string, string[]>
@@ -514,13 +493,10 @@ class LineSplitStream implements ReadableWritablePair<string[], string> {
 export class ForkException extends Error {
     readonly name = 'ForkError'
 
-    constructor(
-        readonly lastBlocks: BlockRef[],
-        readonly query: {fromBlock: number; parentBlockHash: string},
-    ) {
+    constructor(readonly lastBlocks: BlockRef[], readonly query: {fromBlock: number; parentBlockHash: string}) {
         let parent = last(lastBlocks)
         super(
-            `expected ${query.fromBlock} to have parent ${parent.number}#${query.parentBlockHash}, but got ${parent.number}#${parent.hash}`,
+            `expected ${query.fromBlock} to have parent ${parent.number}#${query.parentBlockHash}, but got ${parent.number}#${parent.hash}`
         )
     }
 }
