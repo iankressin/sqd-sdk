@@ -13,7 +13,7 @@
         "build": "rm -rf lib && tsup"
     },
     "dependencies": {
-        "@sqd-sdk/core": "workspace:^",
+        "@sqd-sdk/core": "workspace:../../core/lib",
         "bs58": "^6.0.0"
     },
     "devDependencies": {

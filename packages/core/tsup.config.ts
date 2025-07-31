@@ -1,10 +1,11 @@
-// import fs from 'node:fs/promises'
 import {globSync} from 'glob'
 import {defineConfig} from 'tsup'
 import fs from 'node:fs'
 
+const entries = globSync('src/**/*.ts', {ignore: ['src/**/*.test.ts']})
+
 export default defineConfig({
-    entry: globSync('src/**/*.ts'),
+    entry: entries,
     outDir: 'lib',
     format: ['cjs', 'esm'],
     bundle: false,
@@ -18,7 +19,6 @@ export default defineConfig({
     async onSuccess() {
         console.log('Generating package.json exports...')
 
-        const entries = globSync('src/*/')
         const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
 
         pkg.exports = entries.reduce<
@@ -38,20 +38,20 @@ export default defineConfig({
                 }
             >
         >((acc, rawEntry) => {
-            const entry = rawEntry.replace(/^src\//, '')
-            const exportsEntry = `./${entry}`
-            const importEntry = `./${entry}/index.js`
-            const requireEntry = `./${entry}/index.cjs`
+            const entry = rawEntry.match(/src\/(.*)\.ts/)![1]!
+            const exportsEntry = entry === 'index' ? '.' : `./${entry.replace(/\/index$/, '')}`
+            const importEntry = `./${entry}.js`
+            const requireEntry = `./${entry}.cjs`
             acc[exportsEntry] = {
                 import: {
-                    types: `./${entry}/index.d.ts`,
+                    types: `./${entry}.d.ts`,
                     default: importEntry,
                 },
                 require: {
-                    types: `./${entry}/index.d.cts`,
+                    types: `./${entry}.d.cts`,
                     default: requireEntry,
                 },
-                types: `./${entry}/index.d.ts`,
+                types: `./${entry}.d.ts`,
                 default: importEntry,
             }
             return acc

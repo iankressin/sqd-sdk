@@ -52,8 +52,8 @@ importers:
   packages/solana/solana-stream:
     dependencies:
       '@sqd-sdk/core':
-        specifier: workspace:^
-        version: link:../../core
+        specifier: workspace:../../core/lib
+        version: link:../../core/lib
       bs58:
         specifier: ^6.0.0
         version: 6.0.0
