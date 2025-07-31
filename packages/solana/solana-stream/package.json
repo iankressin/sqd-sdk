@@ -8,7 +8,9 @@
         "access": "public"
     },
     "files": ["lib", "src"],
-    "main": "lib/index.js",
+    "main": "./lib/index.cjs",
+    "module": "./lib/index.js",
+    "types": "./lib/index.d.ts",
     "scripts": {
         "build": "rm -rf lib && tsup && pnpm build:types",
         "build:types": "tsc",
@@ -31,7 +33,7 @@
                 "default": "./source.js"
             },
             "require": {
-                "types": "./source.d.cts",
+                "types": "./source.d.ts",
                 "default": "./source.cjs"
             },
             "types": "./source.d.ts",
@@ -43,7 +45,7 @@
                 "default": "./schema.js"
             },
             "require": {
-                "types": "./schema.d.cts",
+                "types": "./schema.d.ts",
                 "default": "./schema.cjs"
             },
             "types": "./schema.d.ts",
@@ -55,7 +57,7 @@
                 "default": "./query.js"
             },
             "require": {
-                "types": "./query.d.cts",
+                "types": "./query.d.ts",
                 "default": "./query.cjs"
             },
             "types": "./query.d.ts",
@@ -67,7 +69,7 @@
                 "default": "./instruction.js"
             },
             "require": {
-                "types": "./instruction.d.cts",
+                "types": "./instruction.d.ts",
                 "default": "./instruction.cjs"
             },
             "types": "./instruction.d.ts",
@@ -79,59 +81,59 @@
                 "default": "./index.js"
             },
             "require": {
-                "types": "./index.d.cts",
+                "types": "./index.d.ts",
                 "default": "./index.cjs"
             },
             "types": "./index.d.ts",
             "default": "./index.js"
         },
-        "./objects/types": {
+        "./objets/types": {
             "import": {
-                "types": "./objects/types.d.ts",
-                "default": "./objects/types.js"
+                "types": "./objets/types.d.ts",
+                "default": "./objets/types.js"
             },
             "require": {
-                "types": "./objects/types.d.cts",
-                "default": "./objects/types.cjs"
+                "types": "./objets/types.d.cts",
+                "default": "./objets/types.cjs"
             },
-            "types": "./objects/types.d.ts",
-            "default": "./objects/types.js"
+            "types": "./objets/types.d.ts",
+            "default": "./objets/types.js"
         },
-        "./objects/relations": {
+        "./objets/relations": {
             "import": {
-                "types": "./objects/relations.d.ts",
-                "default": "./objects/relations.js"
+                "types": "./objets/relations.d.ts",
+                "default": "./objets/relations.js"
             },
             "require": {
-                "types": "./objects/relations.d.cts",
-                "default": "./objects/relations.cjs"
+                "types": "./objets/relations.d.cts",
+                "default": "./objets/relations.cjs"
             },
-            "types": "./objects/relations.d.ts",
-            "default": "./objects/relations.js"
+            "types": "./objets/relations.d.ts",
+            "default": "./objets/relations.js"
         },
-        "./objects/items": {
+        "./objets/items": {
             "import": {
-                "types": "./objects/items.d.ts",
-                "default": "./objects/items.js"
+                "types": "./objets/items.d.ts",
+                "default": "./objets/items.js"
             },
             "require": {
-                "types": "./objects/items.d.cts",
-                "default": "./objects/items.cjs"
+                "types": "./objets/items.d.cts",
+                "default": "./objets/items.cjs"
             },
-            "types": "./objects/items.d.ts",
-            "default": "./objects/items.js"
+            "types": "./objets/items.d.ts",
+            "default": "./objets/items.js"
         },
-        "./objects": {
+        "./objets": {
             "import": {
-                "types": "./objects/index.d.ts",
-                "default": "./objects/index.js"
+                "types": "./objets/index.d.ts",
+                "default": "./objets/index.js"
             },
             "require": {
-                "types": "./objects/index.d.cts",
-                "default": "./objects/index.cjs"
+                "types": "./objets/index.d.cts",
+                "default": "./objets/index.cjs"
             },
-            "types": "./objects/index.d.ts",
-            "default": "./objects/index.js"
+            "types": "./objets/index.d.ts",
+            "default": "./objets/index.js"
         }
     }
 }

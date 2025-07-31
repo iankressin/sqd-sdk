@@ -6,8 +6,8 @@
         "access": "public"
     },
     "files": ["lib", "src"],
-    "main": "./lib/index.js",
-    "module": "./lib/index.mjs",
+    "main": "./lib/index.cjs",
+    "module": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "scripts": {
         "build": "rm -rf lib && tsup && pnpm build:types",
@@ -35,7 +35,7 @@
                 "default": "./version.js"
             },
             "require": {
-                "types": "./version.d.cts",
+                "types": "./version.d.ts",
                 "default": "./version.cjs"
             },
             "types": "./version.d.ts",
@@ -47,7 +47,7 @@
                 "default": "./index.js"
             },
             "require": {
-                "types": "./index.d.cts",
+                "types": "./index.d.ts",
                 "default": "./index.cjs"
             },
             "types": "./index.d.ts",
@@ -59,7 +59,7 @@
                 "default": "./validation/util.js"
             },
             "require": {
-                "types": "./validation/util.d.cts",
+                "types": "./validation/util.d.ts",
                 "default": "./validation/util.cjs"
             },
             "types": "./validation/util.d.ts",
@@ -71,7 +71,7 @@
                 "default": "./validation/primitives.js"
             },
             "require": {
-                "types": "./validation/primitives.d.cts",
+                "types": "./validation/primitives.d.ts",
                 "default": "./validation/primitives.cjs"
             },
             "types": "./validation/primitives.d.ts",
@@ -83,7 +83,7 @@
                 "default": "./validation/interface.js"
             },
             "require": {
-                "types": "./validation/interface.d.cts",
+                "types": "./validation/interface.d.ts",
                 "default": "./validation/interface.cjs"
             },
             "types": "./validation/interface.d.ts",
@@ -95,7 +95,7 @@
                 "default": "./validation/index.js"
             },
             "require": {
-                "types": "./validation/index.d.cts",
+                "types": "./validation/index.d.ts",
                 "default": "./validation/index.cjs"
             },
             "types": "./validation/index.d.ts",
@@ -107,7 +107,7 @@
                 "default": "./validation/error.js"
             },
             "require": {
-                "types": "./validation/error.d.cts",
+                "types": "./validation/error.d.ts",
                 "default": "./validation/error.cjs"
             },
             "types": "./validation/error.d.ts",
@@ -119,7 +119,7 @@
                 "default": "./validation/dsl.js"
             },
             "require": {
-                "types": "./validation/dsl.d.cts",
+                "types": "./validation/dsl.d.ts",
                 "default": "./validation/dsl.cjs"
             },
             "types": "./validation/dsl.d.ts",
@@ -131,7 +131,7 @@
                 "default": "./validation/composite/tuple.js"
             },
             "require": {
-                "types": "./validation/composite/tuple.d.cts",
+                "types": "./validation/composite/tuple.d.ts",
                 "default": "./validation/composite/tuple.cjs"
             },
             "types": "./validation/composite/tuple.d.ts",
@@ -143,7 +143,7 @@
                 "default": "./validation/composite/tagged-union.js"
             },
             "require": {
-                "types": "./validation/composite/tagged-union.d.cts",
+                "types": "./validation/composite/tagged-union.d.ts",
                 "default": "./validation/composite/tagged-union.cjs"
             },
             "types": "./validation/composite/tagged-union.d.ts",
@@ -155,7 +155,7 @@
                 "default": "./validation/composite/sentinel.js"
             },
             "require": {
-                "types": "./validation/composite/sentinel.d.cts",
+                "types": "./validation/composite/sentinel.d.ts",
                 "default": "./validation/composite/sentinel.cjs"
             },
             "types": "./validation/composite/sentinel.d.ts",
@@ -167,7 +167,7 @@
                 "default": "./validation/composite/ref.js"
             },
             "require": {
-                "types": "./validation/composite/ref.d.cts",
+                "types": "./validation/composite/ref.d.ts",
                 "default": "./validation/composite/ref.cjs"
             },
             "types": "./validation/composite/ref.d.ts",
@@ -179,7 +179,7 @@
                 "default": "./validation/composite/record.js"
             },
             "require": {
-                "types": "./validation/composite/record.d.cts",
+                "types": "./validation/composite/record.d.ts",
                 "default": "./validation/composite/record.cjs"
             },
             "types": "./validation/composite/record.d.ts",
@@ -191,7 +191,7 @@
                 "default": "./validation/composite/option.js"
             },
             "require": {
-                "types": "./validation/composite/option.d.cts",
+                "types": "./validation/composite/option.d.ts",
                 "default": "./validation/composite/option.cjs"
             },
             "types": "./validation/composite/option.d.ts",
@@ -203,7 +203,7 @@
                 "default": "./validation/composite/one-of.js"
             },
             "require": {
-                "types": "./validation/composite/one-of.d.cts",
+                "types": "./validation/composite/one-of.d.ts",
                 "default": "./validation/composite/one-of.cjs"
             },
             "types": "./validation/composite/one-of.d.ts",
@@ -215,7 +215,7 @@
                 "default": "./validation/composite/object.js"
             },
             "require": {
-                "types": "./validation/composite/object.d.cts",
+                "types": "./validation/composite/object.d.ts",
                 "default": "./validation/composite/object.cjs"
             },
             "types": "./validation/composite/object.d.ts",
@@ -227,7 +227,7 @@
                 "default": "./validation/composite/nullable.js"
             },
             "require": {
-                "types": "./validation/composite/nullable.d.cts",
+                "types": "./validation/composite/nullable.d.ts",
                 "default": "./validation/composite/nullable.cjs"
             },
             "types": "./validation/composite/nullable.d.ts",
@@ -239,7 +239,7 @@
                 "default": "./validation/composite/key-tagged-union.js"
             },
             "require": {
-                "types": "./validation/composite/key-tagged-union.d.cts",
+                "types": "./validation/composite/key-tagged-union.d.ts",
                 "default": "./validation/composite/key-tagged-union.cjs"
             },
             "types": "./validation/composite/key-tagged-union.d.ts",
@@ -251,7 +251,7 @@
                 "default": "./validation/composite/default.js"
             },
             "require": {
-                "types": "./validation/composite/default.d.cts",
+                "types": "./validation/composite/default.d.ts",
                 "default": "./validation/composite/default.cjs"
             },
             "types": "./validation/composite/default.d.ts",
@@ -263,7 +263,7 @@
                 "default": "./validation/composite/constant.js"
             },
             "require": {
-                "types": "./validation/composite/constant.d.cts",
+                "types": "./validation/composite/constant.d.ts",
                 "default": "./validation/composite/constant.cjs"
             },
             "types": "./validation/composite/constant.d.ts",
@@ -275,7 +275,7 @@
                 "default": "./validation/composite/array.js"
             },
             "require": {
-                "types": "./validation/composite/array.d.cts",
+                "types": "./validation/composite/array.d.ts",
                 "default": "./validation/composite/array.cjs"
             },
             "types": "./validation/composite/array.d.ts",
@@ -287,7 +287,7 @@
                 "default": "./portal/index.js"
             },
             "require": {
-                "types": "./portal/index.d.cts",
+                "types": "./portal/index.d.ts",
                 "default": "./portal/index.cjs"
             },
             "types": "./portal/index.d.ts",
@@ -299,7 +299,7 @@
                 "default": "./portal/data-source.js"
             },
             "require": {
-                "types": "./portal/data-source.d.cts",
+                "types": "./portal/data-source.d.ts",
                 "default": "./portal/data-source.cjs"
             },
             "types": "./portal/data-source.d.ts",
@@ -311,7 +311,7 @@
                 "default": "./portal/client.js"
             },
             "require": {
-                "types": "./portal/client.d.cts",
+                "types": "./portal/client.d.ts",
                 "default": "./portal/client.cjs"
             },
             "types": "./portal/client.d.ts",
@@ -323,7 +323,7 @@
                 "default": "./portal/query/substrate.js"
             },
             "require": {
-                "types": "./portal/query/substrate.d.cts",
+                "types": "./portal/query/substrate.d.ts",
                 "default": "./portal/query/substrate.cjs"
             },
             "types": "./portal/query/substrate.d.ts",
@@ -335,7 +335,7 @@
                 "default": "./portal/query/solana.js"
             },
             "require": {
-                "types": "./portal/query/solana.d.cts",
+                "types": "./portal/query/solana.d.ts",
                 "default": "./portal/query/solana.cjs"
             },
             "types": "./portal/query/solana.d.ts",
@@ -347,7 +347,7 @@
                 "default": "./portal/query/evm.js"
             },
             "require": {
-                "types": "./portal/query/evm.d.cts",
+                "types": "./portal/query/evm.d.ts",
                 "default": "./portal/query/evm.cjs"
             },
             "types": "./portal/query/evm.d.ts",
@@ -359,7 +359,7 @@
                 "default": "./pipeline/types.js"
             },
             "require": {
-                "types": "./pipeline/types.d.cts",
+                "types": "./pipeline/types.d.ts",
                 "default": "./pipeline/types.cjs"
             },
             "types": "./pipeline/types.d.ts",
@@ -371,7 +371,7 @@
                 "default": "./pipeline/index.js"
             },
             "require": {
-                "types": "./pipeline/index.d.cts",
+                "types": "./pipeline/index.d.ts",
                 "default": "./pipeline/index.cjs"
             },
             "types": "./pipeline/index.d.ts",
@@ -383,7 +383,7 @@
                 "default": "./pipeline/errors.js"
             },
             "require": {
-                "types": "./pipeline/errors.d.cts",
+                "types": "./pipeline/errors.d.ts",
                 "default": "./pipeline/errors.cjs"
             },
             "types": "./pipeline/errors.d.ts",
@@ -395,7 +395,7 @@
                 "default": "./logger/logger.js"
             },
             "require": {
-                "types": "./logger/logger.d.cts",
+                "types": "./logger/logger.d.ts",
                 "default": "./logger/logger.cjs"
             },
             "types": "./logger/logger.d.ts",
@@ -407,7 +407,7 @@
                 "default": "./logger/level.js"
             },
             "require": {
-                "types": "./logger/level.d.cts",
+                "types": "./logger/level.d.ts",
                 "default": "./logger/level.cjs"
             },
             "types": "./logger/level.d.ts",
@@ -419,7 +419,7 @@
                 "default": "./logger/index.js"
             },
             "require": {
-                "types": "./logger/index.d.cts",
+                "types": "./logger/index.d.ts",
                 "default": "./logger/index.cjs"
             },
             "types": "./logger/index.d.ts",
@@ -431,7 +431,7 @@
                 "default": "./logger/demo.js"
             },
             "require": {
-                "types": "./logger/demo.d.cts",
+                "types": "./logger/demo.d.ts",
                 "default": "./logger/demo.cjs"
             },
             "types": "./logger/demo.d.ts",
@@ -443,7 +443,7 @@
                 "default": "./logger/sinks/pretty.js"
             },
             "require": {
-                "types": "./logger/sinks/pretty.d.cts",
+                "types": "./logger/sinks/pretty.d.ts",
                 "default": "./logger/sinks/pretty.cjs"
             },
             "types": "./logger/sinks/pretty.d.ts",
@@ -455,7 +455,7 @@
                 "default": "./logger/sinks/json.js"
             },
             "require": {
-                "types": "./logger/sinks/json.d.cts",
+                "types": "./logger/sinks/json.d.ts",
                 "default": "./logger/sinks/json.cjs"
             },
             "types": "./logger/sinks/json.d.ts",
@@ -467,7 +467,7 @@
                 "default": "./internal/timeout.js"
             },
             "require": {
-                "types": "./internal/timeout.d.cts",
+                "types": "./internal/timeout.d.ts",
                 "default": "./internal/timeout.cjs"
             },
             "types": "./internal/timeout.d.ts",
@@ -479,7 +479,7 @@
                 "default": "./internal/throttler.js"
             },
             "require": {
-                "types": "./internal/throttler.d.cts",
+                "types": "./internal/throttler.d.ts",
                 "default": "./internal/throttler.cjs"
             },
             "types": "./internal/throttler.d.ts",
@@ -491,7 +491,7 @@
                 "default": "./internal/selection.js"
             },
             "require": {
-                "types": "./internal/selection.d.cts",
+                "types": "./internal/selection.d.ts",
                 "default": "./internal/selection.cjs"
             },
             "types": "./internal/selection.d.ts",
@@ -503,7 +503,7 @@
                 "default": "./internal/misc.js"
             },
             "require": {
-                "types": "./internal/misc.d.cts",
+                "types": "./internal/misc.d.ts",
                 "default": "./internal/misc.cjs"
             },
             "types": "./internal/misc.d.ts",
@@ -515,7 +515,7 @@
                 "default": "./internal/io.js"
             },
             "require": {
-                "types": "./internal/io.d.cts",
+                "types": "./internal/io.d.ts",
                 "default": "./internal/io.cjs"
             },
             "types": "./internal/io.d.ts",
@@ -527,7 +527,7 @@
                 "default": "./internal/index.js"
             },
             "require": {
-                "types": "./internal/index.d.cts",
+                "types": "./internal/index.d.ts",
                 "default": "./internal/index.cjs"
             },
             "types": "./internal/index.d.ts",
@@ -539,7 +539,7 @@
                 "default": "./internal/hex.js"
             },
             "require": {
-                "types": "./internal/hex.d.cts",
+                "types": "./internal/hex.d.ts",
                 "default": "./internal/hex.cjs"
             },
             "types": "./internal/hex.d.ts",
@@ -551,7 +551,7 @@
                 "default": "./internal/heap.js"
             },
             "require": {
-                "types": "./internal/heap.d.cts",
+                "types": "./internal/heap.d.ts",
                 "default": "./internal/heap.cjs"
             },
             "types": "./internal/heap.d.ts",
@@ -563,7 +563,7 @@
                 "default": "./internal/def.js"
             },
             "require": {
-                "types": "./internal/def.d.cts",
+                "types": "./internal/def.d.ts",
                 "default": "./internal/def.cjs"
             },
             "types": "./internal/def.d.ts",
@@ -575,7 +575,7 @@
                 "default": "./internal/async.js"
             },
             "require": {
-                "types": "./internal/async.d.cts",
+                "types": "./internal/async.d.ts",
                 "default": "./internal/async.cjs"
             },
             "types": "./internal/async.d.ts",
@@ -587,7 +587,7 @@
                 "default": "./internal/types/primitive.js"
             },
             "require": {
-                "types": "./internal/types/primitive.d.cts",
+                "types": "./internal/types/primitive.d.ts",
                 "default": "./internal/types/primitive.cjs"
             },
             "types": "./internal/types/primitive.d.ts",
@@ -599,7 +599,7 @@
                 "default": "./internal/types/misc.js"
             },
             "require": {
-                "types": "./internal/types/misc.d.cts",
+                "types": "./internal/types/misc.d.ts",
                 "default": "./internal/types/misc.cjs"
             },
             "types": "./internal/types/misc.d.ts",
@@ -611,7 +611,7 @@
                 "default": "./internal/types/index.js"
             },
             "require": {
-                "types": "./internal/types/index.d.cts",
+                "types": "./internal/types/index.d.ts",
                 "default": "./internal/types/index.cjs"
             },
             "types": "./internal/types/index.d.ts",
@@ -623,7 +623,7 @@
                 "default": "./internal/range/util.js"
             },
             "require": {
-                "types": "./internal/range/util.d.cts",
+                "types": "./internal/range/util.d.ts",
                 "default": "./internal/range/util.cjs"
             },
             "types": "./internal/range/util.d.ts",
@@ -635,7 +635,7 @@
                 "default": "./internal/range/requests.js"
             },
             "require": {
-                "types": "./internal/range/requests.d.cts",
+                "types": "./internal/range/requests.d.ts",
                 "default": "./internal/range/requests.cjs"
             },
             "types": "./internal/range/requests.d.ts",
@@ -647,7 +647,7 @@
                 "default": "./internal/range/interfaces.js"
             },
             "require": {
-                "types": "./internal/range/interfaces.d.cts",
+                "types": "./internal/range/interfaces.d.ts",
                 "default": "./internal/range/interfaces.cjs"
             },
             "types": "./internal/range/interfaces.d.ts",
@@ -659,7 +659,7 @@
                 "default": "./internal/range/index.js"
             },
             "require": {
-                "types": "./internal/range/index.d.cts",
+                "types": "./internal/range/index.d.ts",
                 "default": "./internal/range/index.cjs"
             },
             "types": "./internal/range/index.d.ts",
@@ -671,7 +671,7 @@
                 "default": "./http-client/index.js"
             },
             "require": {
-                "types": "./http-client/index.d.cts",
+                "types": "./http-client/index.d.ts",
                 "default": "./http-client/index.cjs"
             },
             "types": "./http-client/index.d.ts",
@@ -683,7 +683,7 @@
                 "default": "./http-client/client.js"
             },
             "require": {
-                "types": "./http-client/client.d.cts",
+                "types": "./http-client/client.d.ts",
                 "default": "./http-client/client.cjs"
             },
             "types": "./http-client/client.d.ts",
@@ -695,7 +695,7 @@
                 "default": "./http-client/body.js"
             },
             "require": {
-                "types": "./http-client/body.d.cts",
+                "types": "./http-client/body.d.ts",
                 "default": "./http-client/body.cjs"
             },
             "types": "./http-client/body.d.ts",

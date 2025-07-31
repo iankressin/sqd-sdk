@@ -10,7 +10,6 @@ export default defineConfig({
     format: ['cjs', 'esm'],
     bundle: true,
     clean: true,
-    dts: true,
     splitting: false,
     sourcemap: true,
     outExtension({format}) {
