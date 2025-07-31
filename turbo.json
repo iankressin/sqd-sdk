@@ -12,7 +12,10 @@
       "cache": false
     },
     "@sqd-sdk/solana-stream#build": {
-      "dependsOn": ["@sqd-sdk/core#build"]
+        "dependsOn": ["@sqd-sdk/core#build"]
+    },
+    "solana-example#build": {
+        "dependsOn": ["@sqd-sdk/core#build", "@sqd-sdk/solana-stream#build"]
     }
   }
 }

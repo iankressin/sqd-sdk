@@ -11,9 +11,9 @@ importers:
       '@biomejs/biome':
         specifier: ^1.9.4
         version: 1.9.4
-      esbuild-plugin-file-path-extensions:
-        specifier: ^2.1.4
-        version: 2.1.4
+      glob:
+        specifier: ^11.0.3
+        version: 11.0.3
       tsup:
         specifier: ^8.3.6
         version: 8.3.6
@@ -42,14 +42,24 @@ importers:
       esbuild-plugin-tsconfig-paths:
         specifier: ^1.0.0
         version: 1.0.1
-      glob:
-        specifier: ^11.0.3
-        version: 11.0.3
       typescript:
         specifier: ~5.5.4
         version: 5.5.4
 
   packages/solana/solana-stream:
+    dependencies:
+      '@sqd-sdk/core':
+        specifier: workspace:../../core/lib
+        version: link:../../core/lib
+      bs58:
+        specifier: ^6.0.0
+        version: 6.0.0
+    devDependencies:
+      typescript:
+        specifier: ~5.5.4
+        version: 5.5.4
+
+  packages/solana/solana-stream/lib:
     dependencies:
       '@sqd-sdk/core':
         specifier: workspace:../../core/lib
@@ -71,11 +81,11 @@ importers:
         specifier: ^1.11.2
         version: 1.11.2
       '@sqd-sdk/core':
-        specifier: workspace:^
-        version: link:../../packages/core
+        specifier: workspace:../../packages/core/lib
+        version: link:../../packages/core/lib
       '@sqd-sdk/solana-stream':
-        specifier: workspace:^
-        version: link:../../packages/solana/solana-stream
+        specifier: workspace:../../packages/solana/solana-stream/lib
+        version: link:../../packages/solana/solana-stream/lib
       dotenv:
         specifier: ^16.4.7
         version: 16.4.7
@@ -1053,11 +1063,6 @@ packages:
 
   /esbuild-plugin-alias@0.2.1:
     resolution: {integrity: sha512-jyfL/pwPqaFXyKnj8lP8iLk6Z0m099uXR45aSN8Av1XD4vhvQutxxPzgA2bTcAwQpa1zCXDcWOlhFgyP3GKqhQ==}
-    dev: true
-
-  /esbuild-plugin-file-path-extensions@2.1.4:
-    resolution: {integrity: sha512-lNjylaAsJMprYg28zjUyBivP3y0ms9b7RJZ5tdhDUFLa3sCbqZw4wDnbFUSmnyZYWhCYDPxxp7KkXM2TXGw3PQ==}
-    engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
     dev: true
 
   /esbuild-plugin-tsconfig-paths@1.0.1:

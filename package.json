@@ -6,7 +6,7 @@
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
-        "esbuild-plugin-file-path-extensions": "^2.1.4",
+        "glob": "^11.0.3",
         "tsup": "^8.3.6",
         "turbo": "^2.3.4"
     }

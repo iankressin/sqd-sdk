@@ -1,8 +1,11 @@
 import {defineConfig} from 'tsup'
-import {esbuildPluginFilePathExtensions} from 'esbuild-plugin-file-path-extensions'
+import {globSync} from 'glob'
+import fs from 'node:fs'
+
+const entries = globSync('src/**/*.ts', {ignore: ['src/**/*.test.ts']})
 
 export default defineConfig({
-    entry: ['src/**/*.ts'],
+    entry: entries,
     outDir: 'lib',
     format: ['cjs', 'esm'],
     bundle: true,
@@ -10,6 +13,52 @@ export default defineConfig({
     dts: true,
     splitting: false,
     sourcemap: true,
-    outExtension: ({format}) => (format === 'cjs' ? {js: '.js', dts: '.d.ts'} : {js: '.mjs', dts: '.d.mts'}),
-    esbuildPlugins: [esbuildPluginFilePathExtensions({cjsExtension: 'js', esmExtension: 'mjs'})],
+    outExtension({format}) {
+        return {
+            js: format === 'cjs' ? '.cjs' : '.js',
+        }
+    },
+    async onSuccess() {
+        console.log('Generating package.json exports...')
+
+        const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
+
+        pkg.exports = entries.reduce<
+            Record<
+                string,
+                {
+                    import: {
+                        types?: string
+                        default: string
+                    }
+                    require: {
+                        types: string
+                        default: string
+                    }
+                    default: string
+                    types: string
+                }
+            >
+        >((acc, rawEntry) => {
+            const entry = rawEntry.match(/src\/(.*)\.ts/)![1]!
+            const exportsEntry = entry === 'index' ? '.' : `./${entry.replace(/\/index$/, '')}`
+            const importEntry = `./${entry}.js`
+            const requireEntry = `./${entry}.cjs`
+            acc[exportsEntry] = {
+                import: {
+                    types: `./${entry}.d.ts`,
+                    default: importEntry,
+                },
+                require: {
+                    types: `./${entry}.d.cts`,
+                    default: requireEntry,
+                },
+                types: `./${entry}.d.ts`,
+                default: importEntry,
+            }
+            return acc
+        }, {})
+
+        fs.writeFileSync('./lib/package.json', JSON.stringify(pkg, null, 2))
+    },
 })

@@ -16,7 +16,7 @@
         "prepublishOnly": "pnpm build && pnpm pack",
         "publish": "npm publish package.tgz",
         "postpublish": "rm -f package.tgz"
-  },
+    },
     "dependencies": {
         "supports-color": "^8.1.1"
     },
@@ -26,7 +26,6 @@
         "esbuild-fix-imports-plugin": "^1.0.19",
         "esbuild-plugin-alias": "^0.2.1",
         "esbuild-plugin-tsconfig-paths": "^1.0.0",
-        "glob": "^11.0.3",
         "typescript": "~5.5.4"
     }
 }
