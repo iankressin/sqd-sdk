@@ -5,7 +5,6 @@ import type {
     DataBatch,
     DataFork,
     DataReader,
-    DataRef,
     DataCursor,
     DataWriter,
     UnfinalizedDataWriter,
@@ -53,20 +52,14 @@ class DataSource<T extends Data> {
 
     private _state: 'opened' | 'locked' | 'closed' = 'opened'
     private _abortController: AbortController | undefined
+    private _reader: (opts: DataReaderOptions<T>) => PromiseLike<DataReader<T>>
 
     constructor(config: FinalizedDataSourceConfig<T> | UnfinalizedDataSourceConfig<T>) {
         const {reader, cursor, unfinalized} = config
 
         this.unfinalized = !!unfinalized
         this.cursor = cursor
-
-        Object.assign(this, {
-            _reader: reader,
-        })
-    }
-
-    private _reader(opts: DataReaderOptions<T>): Promise<DataReader<T>> {
-        throw new Error('Not implemented')
+        this._reader = reader
     }
 
     async *read(opts: DataReaderOptions<T>): AsyncIterable<DataBatch<T>> {
