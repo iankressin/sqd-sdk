@@ -13,6 +13,7 @@
     "types": "./lib/index.d.ts",
     "scripts": {
         "build": "rm -rf lib && tsup && pnpm build:types",
+        "build:dev": "rm -rf lib && tsup --config tsup.config.dev.ts && pnpm build:types",
         "build:types": "tsc",
         "pack": "(cd lib && npm pack --pack-destination ..) && rm -f package.tgz && mv sqd-sdk-solana-stream-*.tgz package.tgz",
         "prepublishOnly": "pnpm build && pnpm pack",
