@@ -159,6 +159,41 @@ export class AsyncQueue<T> {
     }
 }
 
+export class SyncQueue<T> {
+    private pendingPuts: Array<{
+        value: T
+        resolve: () => void
+    }> = []
+
+    private pendingTakes: Array<{
+        resolve: (value: T) => void
+    }> = []
+
+    async put(value: T): Promise<void> {
+        const pendingTake = this.pendingTakes.shift()
+        if (pendingTake) {
+            pendingTake.resolve(value)
+            return
+        }
+
+        return new Promise<void>((resolve) => {
+            this.pendingPuts.push({value, resolve})
+        })
+    }
+
+    async take(): Promise<T> {
+        const pendingPut = this.pendingPuts.shift()
+        if (pendingPut) {
+            pendingPut.resolve()
+            return pendingPut.value
+        }
+
+        return new Promise<T>((resolve) => {
+            this.pendingTakes.push({resolve})
+        })
+    }
+}
+
 export async function* concurrentMap<T, R>(
     concurrency: number,
     stream: AsyncIterable<T>,
