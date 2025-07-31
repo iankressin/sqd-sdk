@@ -1,4 +1,4 @@
-import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range/index'
+import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range'
 import {type DataBatch, type DataRef, type DataCursor, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {

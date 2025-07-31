@@ -23,7 +23,7 @@ export {
     TokenBalanceFieldSelection,
     TransactionFields,
     TransactionFieldSelection,
-} from '@sqd-sdk/core/portal/solana'
+} from '@sqd-sdk/core/portal/query/solana'
 
 export function blockFromPartial<F extends base.RequiredFieldSelection>(src: base.BlockPartial<F>): base.Block<F> {
     // FIXME: why types are broken
