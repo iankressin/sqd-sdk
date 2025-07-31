@@ -1,6 +1,6 @@
 import {globSync} from 'glob'
 import {defineConfig} from 'tsup'
-import fs from 'node:fs'
+import {copyFileSync} from 'node:fs'
 
 const entries = globSync('src/**/*.ts', {ignore: ['src/**/*.test.ts']})
 
@@ -17,46 +17,6 @@ export default defineConfig({
         }
     },
     async onSuccess() {
-        console.log('Generating package.json exports...')
-
-        const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
-
-        pkg.exports = entries.reduce<
-            Record<
-                string,
-                {
-                    import: {
-                        types?: string
-                        default: string
-                    }
-                    require: {
-                        types: string
-                        default: string
-                    }
-                    default: string
-                    types: string
-                }
-            >
-        >((acc, rawEntry) => {
-            const entry = rawEntry.match(/src\/(.*)\.ts/)![1]!
-            const exportsEntry = entry === 'index' ? '.' : `./${entry.replace(/\/index$/, '')}`
-            const importEntry = `./${entry}.js`
-            const requireEntry = `./${entry}.cjs`
-            acc[exportsEntry] = {
-                import: {
-                    types: `./${entry}.d.ts`,
-                    default: importEntry,
-                },
-                require: {
-                    types: `./${entry}.d.cts`,
-                    default: requireEntry,
-                },
-                types: `./${entry}.d.ts`,
-                default: importEntry,
-            }
-            return acc
-        }, {})
-
-        fs.writeFileSync('./lib/package.json', JSON.stringify(pkg, null, 2))
+        copyFileSync('package.json', 'lib/package.json')
     },
 })

@@ -1,4 +1,4 @@
 packages:
   - packages/**/
-  - "!packages/*/lib"
+  - "!packages/**/lib"
   - test/*
