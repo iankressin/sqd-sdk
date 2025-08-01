@@ -13,10 +13,10 @@ import {
     option,
     STRING,
     withDefault,
-} from '@sqd-sdk/core/validation'
+} from '@iankresin/core/validation'
 import type {FieldSelection} from './objects'
-import {weakMemo} from '@sqd-sdk/core/internal/misc'
-import type {Selector} from '@sqd-sdk/core/internal/selection'
+import {weakMemo} from '@iankresin/core/internal/misc'
+import type {Selector} from '@iankresin/core/internal/selection'
 
 export function project<T>(fields: Selector<keyof T> | undefined, obj: T): Partial<T> {
     if (fields == null) return {}
