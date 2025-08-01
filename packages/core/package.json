@@ -30,18 +30,6 @@
         "typescript": "~5.5.4"
     },
     "exports": {
-        "./version": {
-            "import": {
-                "types": "./version.d.ts",
-                "default": "./version.js"
-            },
-            "require": {
-                "types": "./version.d.ts",
-                "default": "./version.cjs"
-            },
-            "types": "./version.d.ts",
-            "default": "./version.js"
-        },
         ".": {
             "import": {
                 "types": "./index.d.ts",
@@ -54,41 +42,17 @@
             "types": "./index.d.ts",
             "default": "./index.js"
         },
-        "./validation/util": {
+        "./version": {
             "import": {
-                "types": "./validation/util.d.ts",
-                "default": "./validation/util.js"
+                "types": "./version.d.ts",
+                "default": "./version.js"
             },
             "require": {
-                "types": "./validation/util.d.ts",
-                "default": "./validation/util.cjs"
+                "types": "./version.d.ts",
+                "default": "./version.cjs"
             },
-            "types": "./validation/util.d.ts",
-            "default": "./validation/util.js"
-        },
-        "./validation/primitives": {
-            "import": {
-                "types": "./validation/primitives.d.ts",
-                "default": "./validation/primitives.js"
-            },
-            "require": {
-                "types": "./validation/primitives.d.ts",
-                "default": "./validation/primitives.cjs"
-            },
-            "types": "./validation/primitives.d.ts",
-            "default": "./validation/primitives.js"
-        },
-        "./validation/interface": {
-            "import": {
-                "types": "./validation/interface.d.ts",
-                "default": "./validation/interface.js"
-            },
-            "require": {
-                "types": "./validation/interface.d.ts",
-                "default": "./validation/interface.cjs"
-            },
-            "types": "./validation/interface.d.ts",
-            "default": "./validation/interface.js"
+            "types": "./version.d.ts",
+            "default": "./version.js"
         },
         "./validation": {
             "import": {
@@ -102,186 +66,6 @@
             "types": "./validation/index.d.ts",
             "default": "./validation/index.js"
         },
-        "./validation/error": {
-            "import": {
-                "types": "./validation/error.d.ts",
-                "default": "./validation/error.js"
-            },
-            "require": {
-                "types": "./validation/error.d.ts",
-                "default": "./validation/error.cjs"
-            },
-            "types": "./validation/error.d.ts",
-            "default": "./validation/error.js"
-        },
-        "./validation/dsl": {
-            "import": {
-                "types": "./validation/dsl.d.ts",
-                "default": "./validation/dsl.js"
-            },
-            "require": {
-                "types": "./validation/dsl.d.ts",
-                "default": "./validation/dsl.cjs"
-            },
-            "types": "./validation/dsl.d.ts",
-            "default": "./validation/dsl.js"
-        },
-        "./validation/composite/tuple": {
-            "import": {
-                "types": "./validation/composite/tuple.d.ts",
-                "default": "./validation/composite/tuple.js"
-            },
-            "require": {
-                "types": "./validation/composite/tuple.d.ts",
-                "default": "./validation/composite/tuple.cjs"
-            },
-            "types": "./validation/composite/tuple.d.ts",
-            "default": "./validation/composite/tuple.js"
-        },
-        "./validation/composite/tagged-union": {
-            "import": {
-                "types": "./validation/composite/tagged-union.d.ts",
-                "default": "./validation/composite/tagged-union.js"
-            },
-            "require": {
-                "types": "./validation/composite/tagged-union.d.ts",
-                "default": "./validation/composite/tagged-union.cjs"
-            },
-            "types": "./validation/composite/tagged-union.d.ts",
-            "default": "./validation/composite/tagged-union.js"
-        },
-        "./validation/composite/sentinel": {
-            "import": {
-                "types": "./validation/composite/sentinel.d.ts",
-                "default": "./validation/composite/sentinel.js"
-            },
-            "require": {
-                "types": "./validation/composite/sentinel.d.ts",
-                "default": "./validation/composite/sentinel.cjs"
-            },
-            "types": "./validation/composite/sentinel.d.ts",
-            "default": "./validation/composite/sentinel.js"
-        },
-        "./validation/composite/ref": {
-            "import": {
-                "types": "./validation/composite/ref.d.ts",
-                "default": "./validation/composite/ref.js"
-            },
-            "require": {
-                "types": "./validation/composite/ref.d.ts",
-                "default": "./validation/composite/ref.cjs"
-            },
-            "types": "./validation/composite/ref.d.ts",
-            "default": "./validation/composite/ref.js"
-        },
-        "./validation/composite/record": {
-            "import": {
-                "types": "./validation/composite/record.d.ts",
-                "default": "./validation/composite/record.js"
-            },
-            "require": {
-                "types": "./validation/composite/record.d.ts",
-                "default": "./validation/composite/record.cjs"
-            },
-            "types": "./validation/composite/record.d.ts",
-            "default": "./validation/composite/record.js"
-        },
-        "./validation/composite/option": {
-            "import": {
-                "types": "./validation/composite/option.d.ts",
-                "default": "./validation/composite/option.js"
-            },
-            "require": {
-                "types": "./validation/composite/option.d.ts",
-                "default": "./validation/composite/option.cjs"
-            },
-            "types": "./validation/composite/option.d.ts",
-            "default": "./validation/composite/option.js"
-        },
-        "./validation/composite/one-of": {
-            "import": {
-                "types": "./validation/composite/one-of.d.ts",
-                "default": "./validation/composite/one-of.js"
-            },
-            "require": {
-                "types": "./validation/composite/one-of.d.ts",
-                "default": "./validation/composite/one-of.cjs"
-            },
-            "types": "./validation/composite/one-of.d.ts",
-            "default": "./validation/composite/one-of.js"
-        },
-        "./validation/composite/object": {
-            "import": {
-                "types": "./validation/composite/object.d.ts",
-                "default": "./validation/composite/object.js"
-            },
-            "require": {
-                "types": "./validation/composite/object.d.ts",
-                "default": "./validation/composite/object.cjs"
-            },
-            "types": "./validation/composite/object.d.ts",
-            "default": "./validation/composite/object.js"
-        },
-        "./validation/composite/nullable": {
-            "import": {
-                "types": "./validation/composite/nullable.d.ts",
-                "default": "./validation/composite/nullable.js"
-            },
-            "require": {
-                "types": "./validation/composite/nullable.d.ts",
-                "default": "./validation/composite/nullable.cjs"
-            },
-            "types": "./validation/composite/nullable.d.ts",
-            "default": "./validation/composite/nullable.js"
-        },
-        "./validation/composite/key-tagged-union": {
-            "import": {
-                "types": "./validation/composite/key-tagged-union.d.ts",
-                "default": "./validation/composite/key-tagged-union.js"
-            },
-            "require": {
-                "types": "./validation/composite/key-tagged-union.d.ts",
-                "default": "./validation/composite/key-tagged-union.cjs"
-            },
-            "types": "./validation/composite/key-tagged-union.d.ts",
-            "default": "./validation/composite/key-tagged-union.js"
-        },
-        "./validation/composite/default": {
-            "import": {
-                "types": "./validation/composite/default.d.ts",
-                "default": "./validation/composite/default.js"
-            },
-            "require": {
-                "types": "./validation/composite/default.d.ts",
-                "default": "./validation/composite/default.cjs"
-            },
-            "types": "./validation/composite/default.d.ts",
-            "default": "./validation/composite/default.js"
-        },
-        "./validation/composite/constant": {
-            "import": {
-                "types": "./validation/composite/constant.d.ts",
-                "default": "./validation/composite/constant.js"
-            },
-            "require": {
-                "types": "./validation/composite/constant.d.ts",
-                "default": "./validation/composite/constant.cjs"
-            },
-            "types": "./validation/composite/constant.d.ts",
-            "default": "./validation/composite/constant.js"
-        },
-        "./validation/composite/array": {
-            "import": {
-                "types": "./validation/composite/array.d.ts",
-                "default": "./validation/composite/array.js"
-            },
-            "require": {
-                "types": "./validation/composite/array.d.ts",
-                "default": "./validation/composite/array.cjs"
-            },
-            "types": "./validation/composite/array.d.ts",
-            "default": "./validation/composite/array.js"
-        },
         "./portal": {
             "import": {
                 "types": "./portal/index.d.ts",
@@ -293,78 +77,6 @@
             },
             "types": "./portal/index.d.ts",
             "default": "./portal/index.js"
-        },
-        "./portal/data-source": {
-            "import": {
-                "types": "./portal/data-source.d.ts",
-                "default": "./portal/data-source.js"
-            },
-            "require": {
-                "types": "./portal/data-source.d.ts",
-                "default": "./portal/data-source.cjs"
-            },
-            "types": "./portal/data-source.d.ts",
-            "default": "./portal/data-source.js"
-        },
-        "./portal/client": {
-            "import": {
-                "types": "./portal/client.d.ts",
-                "default": "./portal/client.js"
-            },
-            "require": {
-                "types": "./portal/client.d.ts",
-                "default": "./portal/client.cjs"
-            },
-            "types": "./portal/client.d.ts",
-            "default": "./portal/client.js"
-        },
-        "./portal/substrate": {
-            "import": {
-                "types": "./portal/query/substrate.d.ts",
-                "default": "./portal/query/substrate.js"
-            },
-            "require": {
-                "types": "./portal/query/substrate.d.ts",
-                "default": "./portal/query/substrate.cjs"
-            },
-            "types": "./portal/query/substrate.d.ts",
-            "default": "./portal/query/substrate.js"
-        },
-        "./portal/solana": {
-            "import": {
-                "types": "./portal/query/solana.d.ts",
-                "default": "./portal/query/solana.js"
-            },
-            "require": {
-                "types": "./portal/query/solana.d.ts",
-                "default": "./portal/query/solana.cjs"
-            },
-            "types": "./portal/query/solana.d.ts",
-            "default": "./portal/query/solana.js"
-        },
-        "./portal/evm": {
-            "import": {
-                "types": "./portal/query/evm.d.ts",
-                "default": "./portal/query/evm.js"
-            },
-            "require": {
-                "types": "./portal/query/evm.d.ts",
-                "default": "./portal/query/evm.cjs"
-            },
-            "types": "./portal/query/evm.d.ts",
-            "default": "./portal/query/evm.js"
-        },
-        "./pipeline/types": {
-            "import": {
-                "types": "./pipeline/types.d.ts",
-                "default": "./pipeline/types.js"
-            },
-            "require": {
-                "types": "./pipeline/types.d.ts",
-                "default": "./pipeline/types.cjs"
-            },
-            "types": "./pipeline/types.d.ts",
-            "default": "./pipeline/types.js"
         },
         "./pipeline": {
             "import": {
@@ -378,42 +90,6 @@
             "types": "./pipeline/index.d.ts",
             "default": "./pipeline/index.js"
         },
-        "./pipeline/errors": {
-            "import": {
-                "types": "./pipeline/errors.d.ts",
-                "default": "./pipeline/errors.js"
-            },
-            "require": {
-                "types": "./pipeline/errors.d.ts",
-                "default": "./pipeline/errors.cjs"
-            },
-            "types": "./pipeline/errors.d.ts",
-            "default": "./pipeline/errors.js"
-        },
-        "./logger/logger": {
-            "import": {
-                "types": "./logger/logger.d.ts",
-                "default": "./logger/logger.js"
-            },
-            "require": {
-                "types": "./logger/logger.d.ts",
-                "default": "./logger/logger.cjs"
-            },
-            "types": "./logger/logger.d.ts",
-            "default": "./logger/logger.js"
-        },
-        "./logger/level": {
-            "import": {
-                "types": "./logger/level.d.ts",
-                "default": "./logger/level.js"
-            },
-            "require": {
-                "types": "./logger/level.d.ts",
-                "default": "./logger/level.cjs"
-            },
-            "types": "./logger/level.d.ts",
-            "default": "./logger/level.js"
-        },
         "./logger": {
             "import": {
                 "types": "./logger/index.d.ts",
@@ -425,102 +101,6 @@
             },
             "types": "./logger/index.d.ts",
             "default": "./logger/index.js"
-        },
-        "./logger/demo": {
-            "import": {
-                "types": "./logger/demo.d.ts",
-                "default": "./logger/demo.js"
-            },
-            "require": {
-                "types": "./logger/demo.d.ts",
-                "default": "./logger/demo.cjs"
-            },
-            "types": "./logger/demo.d.ts",
-            "default": "./logger/demo.js"
-        },
-        "./logger/sinks/pretty": {
-            "import": {
-                "types": "./logger/sinks/pretty.d.ts",
-                "default": "./logger/sinks/pretty.js"
-            },
-            "require": {
-                "types": "./logger/sinks/pretty.d.ts",
-                "default": "./logger/sinks/pretty.cjs"
-            },
-            "types": "./logger/sinks/pretty.d.ts",
-            "default": "./logger/sinks/pretty.js"
-        },
-        "./logger/sinks/json": {
-            "import": {
-                "types": "./logger/sinks/json.d.ts",
-                "default": "./logger/sinks/json.js"
-            },
-            "require": {
-                "types": "./logger/sinks/json.d.ts",
-                "default": "./logger/sinks/json.cjs"
-            },
-            "types": "./logger/sinks/json.d.ts",
-            "default": "./logger/sinks/json.js"
-        },
-        "./internal/timeout": {
-            "import": {
-                "types": "./internal/timeout.d.ts",
-                "default": "./internal/timeout.js"
-            },
-            "require": {
-                "types": "./internal/timeout.d.ts",
-                "default": "./internal/timeout.cjs"
-            },
-            "types": "./internal/timeout.d.ts",
-            "default": "./internal/timeout.js"
-        },
-        "./internal/throttler": {
-            "import": {
-                "types": "./internal/throttler.d.ts",
-                "default": "./internal/throttler.js"
-            },
-            "require": {
-                "types": "./internal/throttler.d.ts",
-                "default": "./internal/throttler.cjs"
-            },
-            "types": "./internal/throttler.d.ts",
-            "default": "./internal/throttler.js"
-        },
-        "./internal/selection": {
-            "import": {
-                "types": "./internal/selection.d.ts",
-                "default": "./internal/selection.js"
-            },
-            "require": {
-                "types": "./internal/selection.d.ts",
-                "default": "./internal/selection.cjs"
-            },
-            "types": "./internal/selection.d.ts",
-            "default": "./internal/selection.js"
-        },
-        "./internal/misc": {
-            "import": {
-                "types": "./internal/misc.d.ts",
-                "default": "./internal/misc.js"
-            },
-            "require": {
-                "types": "./internal/misc.d.ts",
-                "default": "./internal/misc.cjs"
-            },
-            "types": "./internal/misc.d.ts",
-            "default": "./internal/misc.js"
-        },
-        "./internal/io": {
-            "import": {
-                "types": "./internal/io.d.ts",
-                "default": "./internal/io.js"
-            },
-            "require": {
-                "types": "./internal/io.d.ts",
-                "default": "./internal/io.cjs"
-            },
-            "types": "./internal/io.d.ts",
-            "default": "./internal/io.js"
         },
         "./internal": {
             "import": {
@@ -534,138 +114,6 @@
             "types": "./internal/index.d.ts",
             "default": "./internal/index.js"
         },
-        "./internal/hex": {
-            "import": {
-                "types": "./internal/hex.d.ts",
-                "default": "./internal/hex.js"
-            },
-            "require": {
-                "types": "./internal/hex.d.ts",
-                "default": "./internal/hex.cjs"
-            },
-            "types": "./internal/hex.d.ts",
-            "default": "./internal/hex.js"
-        },
-        "./internal/heap": {
-            "import": {
-                "types": "./internal/heap.d.ts",
-                "default": "./internal/heap.js"
-            },
-            "require": {
-                "types": "./internal/heap.d.ts",
-                "default": "./internal/heap.cjs"
-            },
-            "types": "./internal/heap.d.ts",
-            "default": "./internal/heap.js"
-        },
-        "./internal/def": {
-            "import": {
-                "types": "./internal/def.d.ts",
-                "default": "./internal/def.js"
-            },
-            "require": {
-                "types": "./internal/def.d.ts",
-                "default": "./internal/def.cjs"
-            },
-            "types": "./internal/def.d.ts",
-            "default": "./internal/def.js"
-        },
-        "./internal/async": {
-            "import": {
-                "types": "./internal/async.d.ts",
-                "default": "./internal/async.js"
-            },
-            "require": {
-                "types": "./internal/async.d.ts",
-                "default": "./internal/async.cjs"
-            },
-            "types": "./internal/async.d.ts",
-            "default": "./internal/async.js"
-        },
-        "./internal/types/primitive": {
-            "import": {
-                "types": "./internal/types/primitive.d.ts",
-                "default": "./internal/types/primitive.js"
-            },
-            "require": {
-                "types": "./internal/types/primitive.d.ts",
-                "default": "./internal/types/primitive.cjs"
-            },
-            "types": "./internal/types/primitive.d.ts",
-            "default": "./internal/types/primitive.js"
-        },
-        "./internal/types/misc": {
-            "import": {
-                "types": "./internal/types/misc.d.ts",
-                "default": "./internal/types/misc.js"
-            },
-            "require": {
-                "types": "./internal/types/misc.d.ts",
-                "default": "./internal/types/misc.cjs"
-            },
-            "types": "./internal/types/misc.d.ts",
-            "default": "./internal/types/misc.js"
-        },
-        "./internal/types": {
-            "import": {
-                "types": "./internal/types/index.d.ts",
-                "default": "./internal/types/index.js"
-            },
-            "require": {
-                "types": "./internal/types/index.d.ts",
-                "default": "./internal/types/index.cjs"
-            },
-            "types": "./internal/types/index.d.ts",
-            "default": "./internal/types/index.js"
-        },
-        "./internal/range/util": {
-            "import": {
-                "types": "./internal/range/util.d.ts",
-                "default": "./internal/range/util.js"
-            },
-            "require": {
-                "types": "./internal/range/util.d.ts",
-                "default": "./internal/range/util.cjs"
-            },
-            "types": "./internal/range/util.d.ts",
-            "default": "./internal/range/util.js"
-        },
-        "./internal/range/requests": {
-            "import": {
-                "types": "./internal/range/requests.d.ts",
-                "default": "./internal/range/requests.js"
-            },
-            "require": {
-                "types": "./internal/range/requests.d.ts",
-                "default": "./internal/range/requests.cjs"
-            },
-            "types": "./internal/range/requests.d.ts",
-            "default": "./internal/range/requests.js"
-        },
-        "./internal/range/interfaces": {
-            "import": {
-                "types": "./internal/range/interfaces.d.ts",
-                "default": "./internal/range/interfaces.js"
-            },
-            "require": {
-                "types": "./internal/range/interfaces.d.ts",
-                "default": "./internal/range/interfaces.cjs"
-            },
-            "types": "./internal/range/interfaces.d.ts",
-            "default": "./internal/range/interfaces.js"
-        },
-        "./internal/range": {
-            "import": {
-                "types": "./internal/range/index.d.ts",
-                "default": "./internal/range/index.js"
-            },
-            "require": {
-                "types": "./internal/range/index.d.ts",
-                "default": "./internal/range/index.cjs"
-            },
-            "types": "./internal/range/index.d.ts",
-            "default": "./internal/range/index.js"
-        },
         "./http-client": {
             "import": {
                 "types": "./http-client/index.d.ts",
@@ -677,30 +125,6 @@
             },
             "types": "./http-client/index.d.ts",
             "default": "./http-client/index.js"
-        },
-        "./http-client/client": {
-            "import": {
-                "types": "./http-client/client.d.ts",
-                "default": "./http-client/client.js"
-            },
-            "require": {
-                "types": "./http-client/client.d.ts",
-                "default": "./http-client/client.cjs"
-            },
-            "types": "./http-client/client.d.ts",
-            "default": "./http-client/client.js"
-        },
-        "./http-client/body": {
-            "import": {
-                "types": "./http-client/body.d.ts",
-                "default": "./http-client/body.js"
-            },
-            "require": {
-                "types": "./http-client/body.d.ts",
-                "default": "./http-client/body.cjs"
-            },
-            "types": "./http-client/body.d.ts",
-            "default": "./http-client/body.js"
         }
     }
 }

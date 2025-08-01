@@ -1,14 +1,14 @@
 import {defineConfig} from 'tsup'
 import {globSync} from 'glob'
-import {copyFileSync} from 'node:fs'
+import {updatePackageExportsPath} from '../../scripts/package-exports-path'
 
 const entries = globSync('src/**/*.ts', {ignore: ['src/**/*.test.ts']})
 
 export default defineConfig({
     entry: entries,
     outDir: 'lib',
-    format: ['cjs'],
-    bundle: true,
+    format: 'cjs',
+    bundle: false,
     clean: true,
     splitting: false,
     sourcemap: true,
@@ -18,6 +18,6 @@ export default defineConfig({
         }
     },
     async onSuccess() {
-        copyFileSync('package.json', 'lib/package.json')
+        updatePackageExportsPath(__dirname)
     },
 })

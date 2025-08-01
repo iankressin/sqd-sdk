@@ -1,4 +1,4 @@
-import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range'
+import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal'
 import {type DataBatch, type DataRef, type DataCursor, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {
@@ -13,9 +13,9 @@ import {getDataSchema} from './schema'
 import {setUpRelations} from './objects/relations'
 import {mergeDataRequests, type SolanaQueryOptions} from './query'
 import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal'
-import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal/selection'
-import {assert, last} from '@sqd-sdk/core/internal/misc'
-import {Throttler} from '@sqd-sdk/core/internal/throttler'
+import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal'
+import {assert, last} from '@sqd-sdk/core/internal'
+import {Throttler} from '@sqd-sdk/core/internal'
 
 type GetFields<F extends FieldSelection> = MergeSelection<RequiredFieldSelection, F>
 
@@ -113,7 +113,7 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
 
     return source<SolanaPortalData<Q>>({
         unfinalized: true,
-        reader: async (opts) => {
+        reader: async (opts: any) => {
             const stream = createDataStream(opts.offset)
 
             return {

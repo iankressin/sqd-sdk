@@ -1,7 +1,6 @@
 import type * as Solana from '@sqd-sdk/core/portal/solana'
-import type {Simplify} from '@sqd-sdk/core/internal/types/misc'
 import type {Trues} from '@sqd-sdk/core/internal/selection'
-import type {Hex} from '@sqd-sdk/core/internal/types/primitive'
+import type {Hex, Simplify} from '@sqd-sdk/core/internal/types'
 
 export type FieldSelection = Solana.FieldSelection
 
