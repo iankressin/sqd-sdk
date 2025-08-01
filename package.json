@@ -5,7 +5,7 @@
         "test": "turbo run test",
         "build": "turbo run build",
         "build:dev": "turbo run build:dev",
-        "changeset": "pnpm changeset",
+        "changeset": "pnpm dlx @changesets/cli",
         "changeset:version": "pnpm dlx @changesets/cli version",
         "release": "turbo run build && pnpm run changeset:version && pnpm run release"
     },
