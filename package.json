@@ -2,11 +2,12 @@
     "name": "sqd-sdk",
     "packageManager": "pnpm@8.6.7",
     "scripts": {
+        "test": "turbo run test",
         "build": "turbo run build",
         "build:dev": "turbo run build:dev",
         "changeset": "pnpm changeset",
         "changeset:version": "pnpm dlx @changesets/cli version",
-        "publish": "pnpm run changeset:version && pnpm --parallel run release"
+        "release": "pnpm run changeset:version && pnpm --parallel run release"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
