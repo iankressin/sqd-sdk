@@ -13,9 +13,8 @@
         "build": "tsup",
         "build:dev": "tsup --config tsup.config.dev.ts",
         "pack": "(cd lib && npm pack --pack-destination ..) && rm -f package.tgz && mv sqd-sdk-core-*.tgz package.tgz",
-        "prepublishOnly": "pnpm build && pnpm pack",
         "publish": "npm publish package.tgz",
-        "postpublish": "rm -f package.tgz"
+        "release": "pnpm build && pnpm pack && pnpm publish"
     },
     "dependencies": {
         "supports-color": "^8.1.1"

@@ -4,8 +4,9 @@
     "scripts": {
         "build": "turbo run build",
         "build:dev": "turbo run build:dev",
-        "changeset": "pnpm dlx @changesets/cli",
-        "changeset:version": "pnpm dlx @changesets/cli version"
+        "changeset": "pnpm changeset",
+        "changeset:version": "pnpm dlx @changesets/cli version",
+        "publish": "pnpm run changeset:version && pnpm --parallel run release"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
