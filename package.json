@@ -3,10 +3,13 @@
     "packageManager": "pnpm@8.6.7",
     "scripts": {
         "build": "turbo run build",
-        "build:dev": "turbo run build:dev"
+        "build:dev": "turbo run build:dev",
+        "changeset": "pnpm dlx @changesets/cli",
+        "changeset:version": "pnpm dlx @changesets/cli version"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",
+        "@changesets/cli": "^2.29.5",
         "glob": "^11.0.3",
         "tsup": "^8.3.6",
         "turbo": "^2.3.4"
