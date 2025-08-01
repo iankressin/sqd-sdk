@@ -22,6 +22,6 @@ export default defineConfig({
         updatePackageExportsPath(__dirname)
     },
     define: {
-        __VERSION__: JSON.parse(readFileSync('package.json', 'utf8')).version,
+        __VERSION__: JSON.stringify(JSON.parse(readFileSync('package.json', 'utf8')).version),
     },
 })
