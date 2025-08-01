@@ -20,4 +20,7 @@ export default defineConfig({
     async onSuccess() {
         updatePackageExportsPath(__dirname)
     },
+    define: {
+        __VERSION__: 'dev'
+    },
 })
