@@ -8,12 +8,19 @@
         "access": "public"
     },
     "files": ["lib", "src"],
-    "main": "lib/index.js",
+    "main": "./lib/index.cjs",
+    "module": "./lib/index.js",
+    "types": "./lib/index.d.ts",
     "scripts": {
-        "build": "rm -rf lib && tsup"
+        "build": "tsup && pnpm build:types",
+        "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types",
+        "build:types": "tsc",
+        "pack": "(cd lib && npm pack --pack-destination ..) && rm -f package.tgz && mv sqd-sdk-solana-stream-*.tgz package.tgz",
+        "publish": "npm publish package.tgz",
+        "release": "pnpm build && pnpm pack && pnpm publish"
     },
     "dependencies": {
-        "@sqd-sdk/core": "workspace:^",
+        "@sqd-sdk/core": "workspace:../../core/lib",
         "bs58": "^6.0.0"
     },
     "devDependencies": {

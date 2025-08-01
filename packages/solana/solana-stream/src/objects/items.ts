@@ -1,4 +1,4 @@
-import type {Base58, Hex} from '@sqd-sdk/core/internal/types/primitive'
+import type {Hex} from '@sqd-sdk/core/internal/types/primitive'
 import {getInstructionDescriptor} from '../instruction'
 import type * as base from './types'
 

@@ -1,5 +1,5 @@
 import {PortalClient} from './client'
-import type * as Solana from './query/solana'
+import type * as Solana from './solana'
 import {last} from '../internal/misc'
 import {HttpClient} from '../http-client/client'
 

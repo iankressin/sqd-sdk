@@ -1,9 +1,8 @@
 {
     "compilerOptions": {
-        "module": "nodenext",
-        "moduleResolution": "nodenext",
+        "module": "esnext",
+        "moduleResolution": "bundler",
         "target": "es2022",
-        "outDir": "lib",
         "rootDir": "src",
         "allowJs": true,
         "strict": true,
@@ -14,7 +13,8 @@
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
         "skipLibCheck": true,
-        "declarationDir": "lib",
+        "outDir": "lib",
+        "emitDeclarationOnly": true
     },
     "include": ["src"],
     "exclude": ["node_modules"]

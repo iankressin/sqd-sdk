@@ -1,29 +1,33 @@
-name: release
+name: Release
+
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - new
+
+concurrency: ${{ github.workflow }}-${{ github.ref }}
 
 jobs:
   release:
-    name: release
+    name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js 20.x
+        uses: actions/setup-node@v3
         with:
-          ref: release/arrowsquid
-          fetch-depth: 0
+          node-version: 20.x
 
-      - name: Configure git user
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+      - name: Install Dependencies
+        run: pnpm install
 
-      - name: Install dependencies
-        run: node common/scripts/install-run-rush.js install
-
-      - name: Build project
-        run: node common/scripts/install-run-rush.js build
-
-      - name: Publish npm packages
-        run: node common/scripts/install-run-rush.js publish --include-all --version-policy npm --target-branch release/arrowsquid --publish --tag latest
+      - name: Create Release Pull Request or Publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          publish: pnpm run release
         env:
-          NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
