@@ -21,8 +21,6 @@ export function updatePackageExportsPath(basePath: string) {
                     types: string
                     default: string
                 }
-                default: string
-                types: string
             }
         >
     >((acc, rawEntry) => {
@@ -32,15 +30,13 @@ export function updatePackageExportsPath(basePath: string) {
         const requireEntry = `./${entry}.cjs`
         acc[exportsEntry] = {
             import: {
-                types: `./${entry}.d.ts`,
+                types: `./${entry}.d.mts`,
                 default: importEntry,
             },
             require: {
-                types: `./${entry}.d.cts`,
+                types: `./${entry}.d.ts`,
                 default: requireEntry,
             },
-            types: `./${entry}.d.ts`,
-            default: importEntry,
         }
         return acc
     }, {})
