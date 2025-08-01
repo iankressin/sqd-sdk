@@ -10,9 +10,8 @@
     "module": "./lib/index.js",
     "types": "./lib/index.d.ts",
     "scripts": {
-        "build": "tsup && pnpm build:types",
-        "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types",
-        "build:types": "tsc",
+        "build": "tsup",
+        "build:dev": "tsup --config tsup.config.dev.ts",
         "pack": "(cd lib && npm pack --pack-destination ..) && rm -f package.tgz && mv sqd-sdk-core-*.tgz package.tgz",
         "prepublishOnly": "pnpm build && pnpm pack",
         "publish": "npm publish package.tgz",
@@ -28,103 +27,5 @@
         "esbuild-plugin-alias": "^0.2.1",
         "esbuild-plugin-tsconfig-paths": "^1.0.0",
         "typescript": "~5.5.4"
-    },
-    "exports": {
-        ".": {
-            "import": {
-                "types": "./index.d.ts",
-                "default": "./index.js"
-            },
-            "require": {
-                "types": "./index.d.ts",
-                "default": "./index.cjs"
-            },
-            "types": "./index.d.ts",
-            "default": "./index.js"
-        },
-        "./version": {
-            "import": {
-                "types": "./version.d.ts",
-                "default": "./version.js"
-            },
-            "require": {
-                "types": "./version.d.ts",
-                "default": "./version.cjs"
-            },
-            "types": "./version.d.ts",
-            "default": "./version.js"
-        },
-        "./validation": {
-            "import": {
-                "types": "./validation/index.d.ts",
-                "default": "./validation/index.js"
-            },
-            "require": {
-                "types": "./validation/index.d.ts",
-                "default": "./validation/index.cjs"
-            },
-            "types": "./validation/index.d.ts",
-            "default": "./validation/index.js"
-        },
-        "./portal": {
-            "import": {
-                "types": "./portal/index.d.ts",
-                "default": "./portal/index.js"
-            },
-            "require": {
-                "types": "./portal/index.d.ts",
-                "default": "./portal/index.cjs"
-            },
-            "types": "./portal/index.d.ts",
-            "default": "./portal/index.js"
-        },
-        "./pipeline": {
-            "import": {
-                "types": "./pipeline/index.d.ts",
-                "default": "./pipeline/index.js"
-            },
-            "require": {
-                "types": "./pipeline/index.d.ts",
-                "default": "./pipeline/index.cjs"
-            },
-            "types": "./pipeline/index.d.ts",
-            "default": "./pipeline/index.js"
-        },
-        "./logger": {
-            "import": {
-                "types": "./logger/index.d.ts",
-                "default": "./logger/index.js"
-            },
-            "require": {
-                "types": "./logger/index.d.ts",
-                "default": "./logger/index.cjs"
-            },
-            "types": "./logger/index.d.ts",
-            "default": "./logger/index.js"
-        },
-        "./internal": {
-            "import": {
-                "types": "./internal/index.d.ts",
-                "default": "./internal/index.js"
-            },
-            "require": {
-                "types": "./internal/index.d.ts",
-                "default": "./internal/index.cjs"
-            },
-            "types": "./internal/index.d.ts",
-            "default": "./internal/index.js"
-        },
-        "./http-client": {
-            "import": {
-                "types": "./http-client/index.d.ts",
-                "default": "./http-client/index.js"
-            },
-            "require": {
-                "types": "./http-client/index.d.ts",
-                "default": "./http-client/index.cjs"
-            },
-            "types": "./http-client/index.d.ts",
-            "default": "./http-client/index.js"
-        }
     }
 }
