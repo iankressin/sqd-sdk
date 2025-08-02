@@ -1,11 +1,15 @@
 {
     "name": "@iankressin/core",
-    "version": "0.0.0",
+    "name": "@sqd-sdk/core",
+    "version": "0.1.0",
     "license": "GPL-3.0-or-later",
     "publishConfig": {
         "access": "public"
     },
-    "files": ["lib", "src"],
+    "files": [
+        "lib",
+        "src"
+    ],
     "main": "./lib/index.cjs",
     "module": "./lib/index.js",
     "types": "./lib/index.d.ts",
