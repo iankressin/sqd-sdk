@@ -1,6 +1,12 @@
-import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal'
-import {type DataBatch, type DataRef, type DataCursor, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
-import {cast} from '@sqd-sdk/core/validation'
+import {applyRangeBound, mergeRangeRequests} from '@iankresin/core/internal'
+import {
+    type DataBatch,
+    type DataRef,
+    type DataCursor,
+    source,
+    type UnfinalizedDataSource,
+} from '@iankresin/core/pipeline'
+import {cast} from '@iankresin/core/validation'
 import {
     type Block,
     blockFromPartial,
@@ -12,10 +18,10 @@ import {
 import {getDataSchema} from './schema'
 import {setUpRelations} from './objects/relations'
 import {mergeDataRequests, type SolanaQueryOptions} from './query'
-import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal'
-import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal'
-import {assert, last} from '@sqd-sdk/core/internal'
-import {Throttler} from '@sqd-sdk/core/internal'
+import {PortalClient, type PortalClientOptions} from '@iankresin/core/portal'
+import {type MergeSelection, mergeSelection} from '@iankresin/core/internal'
+import {assert, last} from '@iankresin/core/internal'
+import {Throttler} from '@iankresin/core/internal'
 
 type GetFields<F extends FieldSelection> = MergeSelection<RequiredFieldSelection, F>
 
@@ -53,7 +59,7 @@ function calculateHead(portalHead: BlockRef, lastBlock: BlockRef | undefined): B
 }
 
 export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
-    options: SolanaPortalDataReaderOptions<Q>
+    options: SolanaPortalDataReaderOptions<Q>,
 ): UnfinalizedDataSource<SolanaPortalData<Q>> {
     const portal = options.portal instanceof PortalClient ? options.portal : new PortalClient(options.portal)
     const fields = getFields(options.query.fields)
@@ -61,7 +67,7 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
     const headThrottler = new Throttler(async () => portal.getHead(), 5_000)
 
     const createDataStream = async function* (
-        offset?: DataRef<SolanaPortalData<Q>>
+        offset?: DataRef<SolanaPortalData<Q>>,
     ): AsyncIterableIterator<DataBatch<SolanaPortalData<Q>>> {
         let parentHash = offset?.hash
         const requestsBounded = offset ? applyRangeBound(requests, {from: offset.number + 1}) : requests
@@ -130,7 +136,7 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
 
 export function mapBlock<F extends RequiredFieldSelection>(
     rawBlock: unknown,
-    fields: RequiredFieldSelection
+    fields: RequiredFieldSelection,
 ): Block<F> {
     const validator = getDataSchema(fields)
     const partial = cast(validator, rawBlock) as BlockPartial<F>
