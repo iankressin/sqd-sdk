@@ -35,16 +35,13 @@ export class BlockId implements DataRef<BlockRef_> {
     }
 
     compare(other: BlockRef_) {
-        if (this.number < other.number) return 'ls'
-        if (this.number > other.number) return 'gt'
-        if (this.hash === other.hash) return 'eq'
-        return 'fk'
+        return this.number - other.number
     }
 }
 
 function calculateHead(portalHead: BlockId, lastBlock: BlockId | undefined): BlockId {
     if (!lastBlock) return portalHead
-    return lastBlock.compare(portalHead) === 'gt' ? lastBlock : portalHead
+    return lastBlock.compare(portalHead) > 0 ? lastBlock : portalHead
 }
 
 export function portalDataSource<T extends Data>(options: PortalDataSourceOptions): UnfinalizedDataSource<T> {

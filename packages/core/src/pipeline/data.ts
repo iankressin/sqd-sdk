@@ -1,5 +1,5 @@
 export type DataRef<T> = T & {
-    compare(other: T): 'ls' | 'eq' | 'gt' | 'fk'
+    compare(other: T): number
 }
 
 export interface Data<V = any, R = any> {

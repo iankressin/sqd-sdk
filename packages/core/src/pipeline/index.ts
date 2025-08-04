@@ -205,6 +205,31 @@ export interface FinalizedDataTargetConfig<T extends Data> {
     unfinalized: false
 }
 
+function validateBatch(offset: DataRef<any> | undefined, batch: DataBatch<any>) {
+    if (offset && batch.offset.compare(offset) < 0) {
+        throw new Error('New offset is below the previous offset')
+    }
+
+    for (const item of batch.data) {
+        if (offset && item.ref.compare(offset) <= 0) {
+            throw new Error('Item is below the previous item')
+        }
+        offset = item.ref
+    }
+
+    if (offset && batch.head.compare(offset) < 0) {
+        throw new Error('Head is below the data')
+    }
+
+    if (batch.finalizedHead && batch.head.compare(batch.finalizedHead) < 0) {
+        throw new Error('Head is below the finalized head')
+    }
+
+    if (batch.head.compare(batch.offset) < 0) {
+        throw new Error('Head is below the offset')
+    }
+}
+
 // NOTE: workaround to allow constructor overloading
 export const DataTarget: {
     new <T extends Data>(config: UnfinalizedDataTargetConfig<T>): UnfinalizedDataTarget<T>
@@ -244,12 +269,14 @@ export const DataTarget: {
                     isRetry = false
                     try {
                         for await (const batch of opts.read({offset})) {
+                            validateBatch(offset, batch)
+
                             offset = await writer.write(batch, offset)
                             // NOTE: If the offset is not the same as the batch offset,
                             // it means that the batch was not fully consumed or we want to skip
                             // so we break the current stream and start from the new offset
                             // FIXME: Do we want this behavior?
-                            if (!offset || offset.compare(batch.offset) !== 'eq') {
+                            if (!offset || offset.compare(batch.offset) !== 0) {
                                 isRetry = true
                                 break
                             }
@@ -343,7 +370,7 @@ export function transformer<T extends Data, U extends Data>(
                         return transformer.fork?.(fork)
                     },
                     async close(): Promise<void> {
-                        await target.close()
+                        await source.close()
                     },
                 }
             },
