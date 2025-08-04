@@ -247,8 +247,7 @@ export function transformer<T extends Data, U extends Data>(
 ): DataDuplexFactory<DataDuplex<T, U>> {
     return (parent) => {
         const queue = new SyncQueue<DataBatch<U>>()
-        let targetInit: Future<DataReaderOptions<U>> = createFuture<DataReaderOptions<U>>()
-        let sourceInit: Future<DataWriterOptions<T>> = createFuture<DataWriterOptions<T>>()
+        let offsetFuture: Future<DataRef<U>> = createFuture<DataRef<U>>()
 
         const targetInstance = target<T>({
             unfinalized: parent.unfinalized,
@@ -258,7 +257,7 @@ export function transformer<T extends Data, U extends Data>(
                     throw new TypeError('Missing fork method in unfinalized DataTransformer')
                 }
 
-                const {offset} = await targetInit.promise()
+                const offset = await offsetFuture.promise()
                 return {
                     offset,
                     async write(batch: DataBatch<T>) {
@@ -279,8 +278,7 @@ export function transformer<T extends Data, U extends Data>(
         const sourceInstance = source<U>({
             unfinalized: parent.unfinalized,
             reader: async (opts) => {
-                targetInit.resolve(opts)
-                const init = await sourceInit.promise()
+                offsetFuture.resolve(opts.offset)
 
                 return {
                     async read(): Promise<DataBatch<U> | undefined> {
@@ -303,17 +301,33 @@ export function transformer<T extends Data, U extends Data>(
 export function finalizer<T extends Data>(): {target: UnfinalizedDataTarget<T>; source: FinalizedDataSource<T>} {
     const buffer: DataItem<T>[] = []
     const queue = new SyncQueue<DataBatch<T>>()
-    let targetInit: Future<DataReaderOptions<T>> = createFuture<DataReaderOptions<T>>()
-    let sourceInit: Future<DataWriterOptions<T>> = createFuture<DataWriterOptions<T>>()
+    let offsetFuture: Future<DataRef<T>> = createFuture<DataRef<T>>()
 
     const targetInstance = target<T>({
         unfinalized: true,
         writer: async (opts: DataWriterOptions<T>) => {
-            const {offset} = await targetInit.promise()
+            const offset = await offsetFuture.promise()
             return {
                 offset,
                 async write(batch: DataBatch<T>) {
                     buffer.push(...batch.data)
+
+                    let unfinalizedIndex = 0
+                    for (; unfinalizedIndex < buffer.length; unfinalizedIndex++) {
+                        const ref = batch.cursor.get(buffer[unfinalizedIndex])
+                        if (batch.head.compare(batch.head, ref) !== 'gt') break
+                    }
+
+                    const data = buffer.slice(0, unfinalizedIndex)
+                    const offset = batch.cursor.get(data[data.length - 1])
+
+                    await queue.put({
+                        data,
+                        cursor: batch.cursor,
+                        offset,
+                        head: batch.head,
+                    })
+
                     return batch.offset
                 },
                 async fork(fork: DataFork<T>): Promise<DataRef<T> | undefined> {
@@ -329,8 +343,7 @@ export function finalizer<T extends Data>(): {target: UnfinalizedDataTarget<T>; 
     const sourceInstance = source<T>({
         unfinalized: false,
         reader: async (opts) => {
-            targetInit.resolve(opts)
-            const init = await sourceInit.promise()
+            offsetFuture.resolve(opts.offset)
 
             return {
                 async read(): Promise<DataBatch<T> | undefined> {
