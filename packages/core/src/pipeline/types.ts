@@ -1,4 +1,4 @@
-export interface Data<I = unknown, R = unknown> {
+export interface Data<I = any, R = any> {
     item: I
     ref: R
 }
@@ -16,10 +16,12 @@ export interface DataBatch<T extends Data> {
     readonly finalizedHead?: DataRef<T> | undefined
     readonly head: DataRef<T>
     readonly offset: DataRef<T>
+    readonly cursor: DataCursor<T>
 }
 
 export interface DataFork<T extends Data> {
     readonly heads: DataRef<T>[]
+    readonly cursor: DataCursor<T>
 }
 
 export interface DataReaderOptions<T extends Data> {
@@ -35,35 +37,36 @@ export type DataSource<T extends Data> = FinalizedDataSource<T> | UnfinalizedDat
 
 export interface FinalizedDataSource<T extends Data> {
     readonly unfinalized: false
-    readonly cursor: DataCursor<T>
     read(opts: DataReaderOptions<T>): AsyncIterable<DataBatch<T>>
-    pipeThrough<U extends DataSource<any>>(duplex: {target: DataTarget<T>; source: U}): U
+    pipeThrough<U extends DataSource<any>>(duplex: PipableThrough<{target: DataTarget<T>; source: U}>): U
     pipeTo(target: DataTarget<T>): Promise<void>
     close(): Promise<void>
 }
 
 export interface UnfinalizedDataSource<T extends Data> {
     readonly unfinalized: true
-    readonly cursor: DataCursor<T>
     read(opts: DataReaderOptions<T>): AsyncIterable<DataBatch<T>>
-    pipeThrough<U extends DataSource<any>>(duplex: {target: UnfinalizedDataTarget<T>; source: U}): U
+    pipeThrough<U extends DataSource<any>>(duplex: PipableThrough<{target: UnfinalizedDataTarget<T>; source: U}>): U
     pipeTo(target: UnfinalizedDataTarget<T>): Promise<void>
     close(): Promise<void>
 }
 
 export interface DataWriterOptions<T extends Data> {
-    cursor: DataRef<T>
+    read: (opts: DataReaderOptions<T>) => AsyncIterable<DataBatch<T>>
 }
+
+// biome-ignore lint/suspicious/noEmptyInterface: <explanation>
+export interface DataWriterWriteOptions<T extends Data> {}
 
 export interface FinalizedDataWriter<T extends Data> {
     offset: DataRef<T> | undefined
-    write(batch: DataBatch<T>): Promise<unknown>
-    fork?(fork: DataFork<T>): Promise<DataRef<T> | undefined>
+    write(batch: DataBatch<T>, offset: DataRef<T>): Promise<DataRef<T>>
+    fork?(fork: DataFork<T>, offset: DataRef<T>): Promise<DataRef<T> | undefined>
     close?(): Promise<unknown>
 }
 
 export interface UnfinalizedDataWriter<T extends Data> extends FinalizedDataWriter<T> {
-    fork(fork: DataFork<T>): Promise<DataRef<T> | undefined>
+    fork(fork: DataFork<T>, offset: DataRef<T>): Promise<DataRef<T> | undefined>
 }
 
 export type DataWriter<T extends Data> = FinalizedDataWriter<T> | UnfinalizedDataWriter<T>
@@ -72,13 +75,13 @@ export type DataTarget<T extends Data> = UnfinalizedDataTarget<T> | FinalizedDat
 
 export interface UnfinalizedDataTarget<T extends Data> {
     unfinalized: true
-    write(opts: DataWriterOptions<T>, read: (opts: DataReaderOptions<T>) => AsyncIterable<DataBatch<T>>): Promise<void>
+    write(opts: DataWriterOptions<T>): Promise<void>
     close(): Promise<void>
 }
 
 export interface FinalizedDataTarget<T extends Data> {
     unfinalized: false
-    write(opts: DataWriterOptions<T>, read: (opts: DataReaderOptions<T>) => AsyncIterable<DataBatch<T>>): Promise<void>
+    write(opts: DataWriterOptions<T>): Promise<void>
     close(): Promise<void>
 }
 
@@ -86,3 +89,9 @@ export interface DataDuplex<T extends Data, U extends Data> {
     target: DataTarget<T>
     source: DataSource<U>
 }
+
+export type DataDuplexFactory<T extends DataDuplex<any, any>> = (
+    source: DataSource<T['target'] extends DataTarget<infer U> ? U : never>,
+) => T
+
+export type PipableThrough<T extends DataDuplex<any, any>> = T | DataDuplexFactory<T>

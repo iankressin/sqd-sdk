@@ -19,6 +19,9 @@ import type {
     DataWriterOptions,
     DataDuplex,
     DataRef,
+    PipableThrough,
+    DataDuplexFactory,
+    DataItem,
 } from './types'
 
 export * from './types'
@@ -30,7 +33,7 @@ async function pipe<T extends Data>(source: DataSource_<T>, target: DataTarget_<
     }
 
     try {
-        await target.write({cursor: source.cursor}, (opts) => source.read(opts))
+        await target.write(source)
     } finally {
         await source.close?.().catch(() => {})
         await target.close?.().catch(() => {})
@@ -39,39 +42,35 @@ async function pipe<T extends Data>(source: DataSource_<T>, target: DataTarget_<
 
 export interface FinalizedDataSourceConfig<T extends Data> {
     reader: (opts: DataReaderOptions<T>) => PromiseLike<DataReader<T>>
-    cursor: DataCursor<T>
     unfinalized: false
 }
 
 export interface UnfinalizedDataSourceConfig<T extends Data> {
     reader: (opts: DataReaderOptions<T>) => PromiseLike<DataReader<T>>
-    cursor: DataCursor<T>
     unfinalized?: true
 }
 
 class DataSource<T extends Data> {
     readonly unfinalized: boolean
-    readonly cursor: DataCursor<T>
 
     private _state: 'opened' | 'locked' | 'closed' = 'opened'
     private _abortController: AbortController | undefined
     private _reader: (opts: DataReaderOptions<T>) => PromiseLike<DataReader<T>>
 
     constructor(config: FinalizedDataSourceConfig<T> | UnfinalizedDataSourceConfig<T>) {
-        const {reader, cursor, unfinalized} = config
+        const {reader, unfinalized} = config
 
         this.unfinalized = unfinalized !== false
-        this.cursor = cursor
         this._reader = reader
     }
 
     async *read(opts: DataReaderOptions<T>): AsyncIterable<DataBatch<T>> {
         if (this._state === 'closed') {
-            throw new Error('DataSource is closed')
+            throw new Error('DataSource is already closed')
         }
 
         if (this._state === 'locked') {
-            throw new Error('DataSource is already locked')
+            throw new Error('DataSource is locked')
         }
         this._state = 'locked'
 
@@ -98,7 +97,11 @@ class DataSource<T extends Data> {
         }
     }
 
-    pipeThrough<U extends DataSource_<any>>(duplex: {target: DataTarget_<T>; source: U}): U {
+    pipeThrough<U extends DataSource_<any>>(duplex: PipableThrough<{target: DataTarget_<T>; source: U}>): U {
+        if (typeof duplex === 'function') {
+            duplex = duplex(this)
+        }
+
         pipe(this, duplex.target).catch((err) => {
             throw err
         })
@@ -150,10 +153,7 @@ class DataTarget<T extends Data> {
         this._writer = config.writer
     }
 
-    async write(
-        opts: DataWriterOptions<T>,
-        read: (opts: DataReaderOptions<T>) => AsyncIterable<DataBatch<T>>,
-    ): Promise<void> {
+    async write(opts: DataWriterOptions<T>): Promise<void> {
         if (this._state === 'closed') {
             throw new Error('DataTarget is closed')
         }
@@ -168,12 +168,23 @@ class DataTarget<T extends Data> {
         try {
             await withAbort(async () => {
                 let offset = writer.offset
+                let isRetry: boolean
                 while (true) {
+                    // FIXME: really bad
+                    isRetry = false
                     try {
-                        for await (const batch of read({offset})) {
-                            await writer.write(batch)
+                        for await (const batch of opts.read({offset})) {
+                            offset = await writer.write(batch, offset)
+                            // NOTE: If the offset is not the same as the batch offset,
+                            // it means that the batch was not fully consumed or we want to skip
+                            // so we break the current stream and start from the new offset
+                            // FIXME: Do we want this behavior?
+                            if (batch.cursor.compare(offset, batch.offset) !== 'eq') {
+                                isRetry = true
+                                break
+                            }
                         }
-                        break
+                        if (!isRetry) break
                     } catch (err) {
                         if (!isForkException<T>(err)) throw err
                         if (!this.unfinalized) {
@@ -182,7 +193,7 @@ class DataTarget<T extends Data> {
                         if (!writer.fork) {
                             throw new TypeError('Missing fork method in unfinalized DataWriter')
                         }
-                        offset = await writer.fork(err.fork)
+                        offset = await writer.fork(err.fork, offset)
                     }
                 }
             }, this._abortController.signal)
@@ -213,117 +224,97 @@ export function target<T extends Data>(
     return new DataTarget(config)
 }
 
-export interface UnfinalizedTransformerConfig<T extends Data, U extends Data> {
-    transform: (batch: DataBatch<T>) => Promise<DataBatch<U>>
-    fork: (fork: DataFork<T>, cursor: DataCursor<T>) => Promise<DataFork<U>>
-    flush?: () => Promise<DataBatch<U>>
-    cursor: DataCursor<U>
-    unfinalized: true
-}
-
-export interface FinalizedTransformerConfig<T extends Data, U extends Data> {
+export interface DataTransformer<T extends Data, U extends Data> {
     transform: (batch: DataBatch<T>) => Promise<DataBatch<U>>
     fork?: (fork: DataFork<T>) => Promise<DataFork<U>>
-    flush?: () => Promise<DataBatch<U>>
-    cursor: DataCursor<U>
-    unfinalized?: false
 }
 
-// export function transformer<T extends Data, U extends Data>(
-//     config: UnfinalizedTransformerConfig<T, U>
-// ): {target: UnfinalizedDataTarget<U>; source: UnfinalizedDataSource<T>}
-// export function transformer<T extends Data, U extends Data>(
-//     config: FinalizedTransformerConfig<T, U>
-// ): {target: FinalizedDataTarget<U>; source: FinalizedDataSource<T>}
-// export function transformer<T extends Data, U extends Data>(
-//     config: UnfinalizedTransformerConfig<T, U> | FinalizedTransformerConfig<T, U>
-// ): DataDuplex<T, U>
-// export function transformer<T extends Data, U extends Data>(
-//     config: UnfinalizedTransformerConfig<T, U> | FinalizedTransformerConfig<T, U>
-// ): DataDuplex<T, U> {
-//     let dataFork: DataFork<U> | undefined = undefined
+// biome-ignore lint/suspicious/noEmptyInterface: <explanation>
+export interface TransformerOptions<T extends Data> {}
 
-//     let headFuture: Future<DataRef<U>> | undefined = undefined
-//     let dataFuture: Future<DataBatch<U>> = createFuture<DataBatch<U>>()
-//     let readyFuture: Future<void> = createFuture<void>()
-
-//     const targetInstance = target<T>({
-//         unfinalized: config.unfinalized,
-//         writer: async () => {
-//             const offset = await headFuture?.promise()
-//             return {
-//                 offset,
-//                 async write(batch: DataBatch<T>): Promise<void> {
-//                     await readyFuture.promise()
-//                     const result = await config.transform(batch)
-//                     dataFuture.resolve(result)
-//                     dataFuture = createFuture<DataBatch<U>>()
-//                 },
-//                 async fork(fork: DataFork<T>): Promise<DataRef<T> | undefined> {
-//                     dataFork = await config.fork?.(fork)
-
-//                     headFuture?.resolve(undefined)
-//                     headFuture = createFuture<DataRef<U>>()
-
-//                     return headFuture.promise()
-//                 },
-//                 async close(): Promise<void> {
-//                     await sourceInstance.close()
-//                 },
-//             }
-//         },
-//     })
-
-//     const sourceInstance = source<U>({
-//         unfinalized: config.unfinalized,
-//         reader: async (offset) => {
-//             headFuture?.resolve(offset)
-//             return {
-//                 async read(): Promise<DataBatch<U> | null> {
-//                     if (dataFork) {
-//                         throw new ForkException(dataFork)
-//                     }
-
-//                     readyFuture.resolve()
-//                     readyFuture = createFuture<void>()
-
-//                     return await dataFuture.promise()
-//                 },
-//                 async close(): Promise<void> {
-//                     await targetInstance.close()
-//                 },
-//             }
-//         },
-//     })
-
-//     return {
-//         target: targetInstance,
-//         source: sourceInstance,
-//     }
-// }
+export interface TransformerConfig<T extends Data, U extends Data> {
+    transformer: (opts: TransformerOptions<T>) => PromiseLike<DataTransformer<T, U>>
+}
 
 export function transformer<T extends Data, U extends Data>(
-    config: UnfinalizedTransformerConfig<T, U>,
-): {target: UnfinalizedDataTarget<U>; source: UnfinalizedDataSource<T>}
+    config: TransformerConfig<T, U>,
+): DataDuplexFactory<{target: UnfinalizedDataTarget<T>; source: UnfinalizedDataSource<U>}>
 export function transformer<T extends Data, U extends Data>(
-    config: FinalizedTransformerConfig<T, U>,
-): {target: FinalizedDataTarget<U>; source: FinalizedDataSource<T>}
+    config: TransformerConfig<T, U>,
+): DataDuplexFactory<{target: FinalizedDataTarget<T>; source: FinalizedDataSource<U>}>
 export function transformer<T extends Data, U extends Data>(
-    config: UnfinalizedTransformerConfig<T, U> | FinalizedTransformerConfig<T, U>,
-): DataDuplex<T, U> {
-    const queue = new SyncQueue<DataBatch<U>>()
-    let targetInit: Future<DataReaderOptions<U>> = createFuture<DataReaderOptions<U>>()
+    config: TransformerConfig<T, U>,
+): DataDuplexFactory<DataDuplex<T, U>> {
+    return (parent) => {
+        const queue = new SyncQueue<DataBatch<U>>()
+        let targetInit: Future<DataReaderOptions<U>> = createFuture<DataReaderOptions<U>>()
+        let sourceInit: Future<DataWriterOptions<T>> = createFuture<DataWriterOptions<T>>()
+
+        const targetInstance = target<T>({
+            unfinalized: parent.unfinalized,
+            writer: async (opts: DataWriterOptions<T>) => {
+                const transformer = await config.transformer({})
+                if (parent.unfinalized && !transformer.fork) {
+                    throw new TypeError('Missing fork method in unfinalized DataTransformer')
+                }
+
+                const {offset} = await targetInit.promise()
+                return {
+                    offset,
+                    async write(batch: DataBatch<T>) {
+                        const data = await transformer.transform(batch)
+                        await queue.put(data)
+                        return batch.offset
+                    },
+                    async fork(fork: DataFork<T>): Promise<DataRef<T> | undefined> {
+                        return transformer.fork?.(fork)
+                    },
+                    async close(): Promise<void> {
+                        await targetInstance.close()
+                    },
+                }
+            },
+        })
+
+        const sourceInstance = source<U>({
+            unfinalized: parent.unfinalized,
+            reader: async (opts) => {
+                targetInit.resolve(opts)
+                const init = await sourceInit.promise()
+
+                return {
+                    async read(): Promise<DataBatch<U> | undefined> {
+                        return await queue.take()
+                    },
+                    async close(): Promise<void> {
+                        await targetInstance.close()
+                    },
+                }
+            },
+        })
+
+        return {
+            target: targetInstance,
+            source: sourceInstance,
+        }
+    }
+}
+
+export function finalizer<T extends Data>(): {target: UnfinalizedDataTarget<T>; source: FinalizedDataSource<T>} {
+    const buffer: DataItem<T>[] = []
+    const queue = new SyncQueue<DataBatch<T>>()
+    let targetInit: Future<DataReaderOptions<T>> = createFuture<DataReaderOptions<T>>()
     let sourceInit: Future<DataWriterOptions<T>> = createFuture<DataWriterOptions<T>>()
 
     const targetInstance = target<T>({
-        unfinalized: config.unfinalized,
+        unfinalized: true,
         writer: async (opts: DataWriterOptions<T>) => {
-            const init = await targetInit.promise()
-
+            const {offset} = await targetInit.promise()
             return {
-                offset: init.offset,
-                async write(batch: DataBatch<T>): Promise<void> {
-                    await queue.put(batch as any)
+                offset,
+                async write(batch: DataBatch<T>) {
+                    buffer.push(...batch.data)
+                    return batch.offset
                 },
                 async fork(fork: DataFork<T>): Promise<DataRef<T> | undefined> {
                     return undefined
@@ -335,14 +326,14 @@ export function transformer<T extends Data, U extends Data>(
         },
     })
 
-    const sourceInstance = source<U>({
-        unfinalized: config.unfinalized,
+    const sourceInstance = source<T>({
+        unfinalized: false,
         reader: async (opts) => {
             targetInit.resolve(opts)
             const init = await sourceInit.promise()
 
             return {
-                async read(): Promise<DataBatch<U> | undefined> {
+                async read(): Promise<DataBatch<T> | undefined> {
                     return await queue.take()
                 },
                 async close(): Promise<void> {
@@ -350,7 +341,6 @@ export function transformer<T extends Data, U extends Data>(
                 },
             }
         },
-        cursor: config.cursor,
     })
 
     return {

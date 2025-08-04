@@ -12,17 +12,17 @@ export function portalDataSource<T extends Data>(options: PortalDataSourceOption
 
     return source({
         unfinalized: true,
-        reader: async (offset) => {
+        reader: async (opts) => {
             return {
                 read: async () => {
                     return {
                         data: [],
                         head: {},
-                        offset,
+                        offset: opts.offset,
+                        cursor,
                     }
                 },
             }
         },
-        cursor: options.cursor,
     })
 }

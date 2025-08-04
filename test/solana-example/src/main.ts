@@ -1,7 +1,16 @@
 import {HttpClient} from '@sqd-sdk/core/http-client'
-import {type Data, type DataBatch, target, type UnfinalizedDataTarget, type DataRef} from '@sqd-sdk/core/pipeline'
+import {
+    type Data,
+    type DataBatch,
+    target,
+    type UnfinalizedDataTarget,
+    type DataRef,
+    transformer,
+    DataCursor,
+    source,
+} from '@sqd-sdk/core/pipeline'
 import {PortalClient} from '@sqd-sdk/core/portal'
-import {solanaPortalDataSource} from '@sqd-sdk/solana-stream'
+import {blockRefer, solanaPortalDataSource} from '@sqd-sdk/solana-stream'
 
 async function main() {
     let portal = new PortalClient({
@@ -45,43 +54,25 @@ async function main() {
                 },
             ],
         },
-    }).pipeTo(
-        //createStateWriter({
-        //    state: {} as any,
-        //    transact: async (batch) => {
-        //        await client.insert({
-        //            table: 'transactions',
-        //            values: batch.data.flatMap((block) =>
-        //                block.transactions.map((tx: any) => ({
-        //                    number: block.header.number,
-        //                    txHash: tx.signatures[0],
-        //                }))
-        //            ),
-        //        })
-        //    },
-        //    rollback: async (block) => {
-        //        await client.query({
-        //            query: `DELETE FROM transactions WHERE number > ${block.number}`,
-        //            format: 'JSONEachRow',
-        //        })
-        //    },
-        //})
-        target({
-            unfinalized: true,
-            writer: async () => {
-                return {
-                    offset: undefined,
-                    write: async (batch) => {
-                        console.log(`${batch.offset.number}/${batch.head.number}`)
-                    },
-                    fork: async (fork) => {
-                        console.log(fork.heads[fork.heads.length - 1]?.number)
-                        return fork.heads[0]
-                    },
-                }
-            },
-        })
-    )
+    })
+        .pipeTo(
+            target({
+                unfinalized: true,
+                writer: async () => {
+                    return {
+                        offset: undefined,
+                        write: async (batch) => {
+                            console.log(`${batch.offset.number}/${batch.head.number}`)
+                            return batch.offset
+                        },
+                        fork: async (fork) => {
+                            console.log(fork.heads[fork.heads.length - 1]?.number)
+                            return fork.heads[0]
+                        },
+                    }
+                },
+            }),
+        )
 }
 
 interface StateManager<T extends Data<any, any>> {

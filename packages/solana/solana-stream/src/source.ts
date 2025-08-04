@@ -1,5 +1,12 @@
 import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range/index'
-import {type DataBatch, type DataRef, type DataCursor, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
+import {
+    type DataBatch,
+    type DataRef,
+    type DataCursor,
+    source,
+    type UnfinalizedDataSource,
+    ForkException,
+} from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {
     type Block,
@@ -12,7 +19,7 @@ import {
 import {getDataSchema} from './schema'
 import {setUpRelations} from './objects/relations'
 import {mergeDataRequests, type SolanaQueryOptions} from './query'
-import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal'
+import {PortalClient, type PortalClientOptions, isForkException} from '@sqd-sdk/core/portal'
 import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal/selection'
 import {assert, last} from '@sqd-sdk/core/internal/misc'
 import {Throttler} from '@sqd-sdk/core/internal/throttler'
@@ -53,7 +60,7 @@ function calculateHead(portalHead: BlockRef, lastBlock: BlockRef | undefined): B
 }
 
 export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
-    options: SolanaPortalDataReaderOptions<Q>
+    options: SolanaPortalDataReaderOptions<Q>,
 ): UnfinalizedDataSource<SolanaPortalData<Q>> {
     const portal = options.portal instanceof PortalClient ? options.portal : new PortalClient(options.portal)
     const fields = getFields(options.query.fields)
@@ -61,7 +68,7 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
     const headThrottler = new Throttler(async () => portal.getHead(), 5_000)
 
     const createDataStream = async function* (
-        offset?: DataRef<SolanaPortalData<Q>>
+        offset?: DataRef<SolanaPortalData<Q>>,
     ): AsyncIterableIterator<DataBatch<SolanaPortalData<Q>>> {
         let parentHash = offset?.hash
         const requestsBounded = offset ? applyRangeBound(requests, {from: offset.number + 1}) : requests
@@ -80,27 +87,39 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
                 }
 
                 let dataProcessed = false
-                for await (const batch of portal.getStream(query)) {
-                    const portalHead = await headThrottler.get()
-                    if (!portalHead) continue // no data?
 
-                    // FIXME: investigate type issue
-                    const data = batch.blocks.map((b) => mapBlock(b, fields)) as Block<GetFields<Q['fields']>>[]
+                try {
+                    for await (const batch of portal.getStream(query)) {
+                        const portalHead = await headThrottler.get()
+                        if (!portalHead) continue // no data?
 
-                    const lastRef = blockRefer.get(last(data))
-                    const head = calculateHead(portalHead, lastRef)
+                        // FIXME: investigate type issue
+                        const data = batch.blocks.map((b) => mapBlock(b, fields)) as Block<GetFields<Q['fields']>>[]
 
-                    yield {
-                        data,
-                        finalizedHead: batch.finalizedHead,
-                        head,
-                        offset: lastRef,
+                        const lastRef = blockRefer.get(last(data))
+                        const head = calculateHead(portalHead, lastRef)
+
+                        yield {
+                            data,
+                            finalizedHead: batch.finalizedHead,
+                            head,
+                            offset: lastRef,
+                            cursor: blockRefer,
+                        }
+
+                        if (lastRef) {
+                            fromBlock = lastRef.number + 1
+                            dataProcessed = true
+                        }
                     }
-
-                    if (lastRef) {
-                        fromBlock = lastRef.number + 1
-                        dataProcessed = true
+                } catch (err) {
+                    if (isForkException(err)) {
+                        throw new ForkException({
+                            heads: err.lastBlocks,
+                            cursor: blockRefer,
+                        })
                     }
+                    throw err
                 }
 
                 if (!dataProcessed && query.fromBlock === fromBlock) {
@@ -124,13 +143,12 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
                 close: async () => stream.return?.(),
             }
         },
-        cursor: blockRefer,
     })
 }
 
 export function mapBlock<F extends RequiredFieldSelection>(
     rawBlock: unknown,
-    fields: RequiredFieldSelection
+    fields: RequiredFieldSelection,
 ): Block<F> {
     const validator = getDataSchema(fields)
     const partial = cast(validator, rawBlock) as BlockPartial<F>
