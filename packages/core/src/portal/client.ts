@@ -65,8 +65,8 @@ export interface PortalStreamOptions {
 }
 
 export type BlockRef = {
-    hash: string
-    number: number
+    readonly hash?: string
+    readonly number: number
 }
 
 export type PortalStreamData<B> = {
@@ -81,6 +81,7 @@ export type PortalQuery = {
     fromBlock?: number
     toBlock?: number
     parentBlockHash?: string
+    [key: string]: unknown
 }
 
 export class PortalClient {
@@ -127,7 +128,7 @@ export class PortalClient {
 
     getFinalizedStream<Q extends PortalQuery = PortalQuery, R = any>(
         query: Q,
-        options?: PortalStreamOptions
+        options?: PortalStreamOptions,
     ): PortalStream<R> {
         let {
             headPollInterval = this.headPollInterval,
@@ -148,7 +149,7 @@ export class PortalClient {
                 maxWaitTime,
                 request,
             },
-            async (q, o) => this.getStreamRequest('finalized-stream', q, o)
+            async (q, o) => this.getStreamRequest('finalized-stream', q, o),
         )
     }
 
@@ -172,7 +173,7 @@ export class PortalClient {
                 maxWaitTime,
                 request,
             },
-            async (q, o) => this.getStreamRequest('stream', q, o)
+            async (q, o) => this.getStreamRequest('stream', q, o),
         )
     }
 
@@ -188,7 +189,7 @@ export class PortalClient {
                 .catch(
                     withErrorContext({
                         query: query,
-                    })
+                    }),
                 )
 
             switch (res.status) {
@@ -231,8 +232,8 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
     options: Required<PortalStreamOptions>,
     requestStream: (
         query: Q,
-        options?: PortalRequestOptions
-    ) => Promise<{finalizedHead?: BlockRef; stream?: ReadableStream<string[]>} | undefined>
+        options?: PortalRequestOptions,
+    ) => Promise<{finalizedHead?: BlockRef; stream?: ReadableStream<string[]>} | undefined>,
 ): PortalStream<R> {
     let {headPollInterval, request, ...bufferOptions} = options
 
@@ -260,7 +261,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
                     {
                         ...request,
                         abort: abortSignal,
-                    }
+                    },
                 )
 
                 // we are on head
@@ -309,7 +310,7 @@ function createPortalStream<Q extends PortalQuery = PortalQuery, R = any>(
 
     ingest().then(
         () => buffer.close(),
-        (err) => buffer.fail(err)
+        (err) => buffer.fail(err),
     )
 
     return {
@@ -406,11 +407,14 @@ class PortalStreamBuffer<B> {
 
         this.lastChunkTimestamp = Date.now()
         if (this.idleInterval == null) {
-            this.idleInterval = setInterval(() => {
-                if (Date.now() - this.lastChunkTimestamp >= this.maxIdleTime) {
-                    this.readyFuture.resolve()
-                }
-            }, Math.ceil(this.maxIdleTime / 3))
+            this.idleInterval = setInterval(
+                () => {
+                    if (Date.now() - this.lastChunkTimestamp >= this.maxIdleTime) {
+                        this.readyFuture.resolve()
+                    }
+                },
+                Math.ceil(this.maxIdleTime / 3),
+            )
             this.readyFuture.promise().finally(() => clearInterval(this.idleInterval))
             this.takeFuture.promise().finally(() => {
                 this.idleInterval = undefined
@@ -493,10 +497,13 @@ class LineSplitStream implements ReadableWritablePair<string[], string> {
 export class ForkException extends Error {
     readonly name = 'ForkError'
 
-    constructor(readonly lastBlocks: BlockRef[], readonly query: {fromBlock: number; parentBlockHash: string}) {
+    constructor(
+        readonly lastBlocks: BlockRef[],
+        readonly query: {fromBlock: number; parentBlockHash: string},
+    ) {
         let parent = last(lastBlocks)
         super(
-            `expected ${query.fromBlock} to have parent ${parent.number}#${query.parentBlockHash}, but got ${parent.number}#${parent.hash}`
+            `expected ${query.fromBlock} to have parent ${parent.number}#${query.parentBlockHash}, but got ${parent.number}#${parent.hash}`,
         )
     }
 }
