@@ -62,10 +62,10 @@ export function portalDataSource<T extends Data>(options: PortalDataSourceOption
 
         while (toBlock == null || fromBlock <= toBlock) {
             const streamQuery = {
+                ...options.query,
                 fromBlock,
                 parentBlockHash,
                 toBlock,
-                ...options.query,
             }
 
             try {
@@ -94,10 +94,8 @@ export function portalDataSource<T extends Data>(options: PortalDataSourceOption
                         offset,
                     }
 
-                    if (offset) {
-                        fromBlock = offset.number + 1
-                        parentBlockHash = offset.hash
-                    }
+                    fromBlock = offset.number + 1
+                    parentBlockHash = offset.hash
                 }
             } catch (err) {
                 if (isForkException(err)) {

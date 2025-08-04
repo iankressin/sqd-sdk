@@ -71,7 +71,7 @@ async function main() {
         },
     })
 
-    await src.pipeThrough(finalizer()).pipeTo(trg)
+    await src.pipeTo(trg)
 }
 
 interface StateManager<T extends Data<any, any>> {
