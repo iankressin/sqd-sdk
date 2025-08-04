@@ -7,7 +7,8 @@
         "build:dev": "turbo run build:dev",
         "changeset": "pnpm dlx @changesets/cli",
         "changeset:version": "pnpm dlx @changesets/cli version",
-        "release": "turbo run build && pnpm run changeset:version && pnpm run release"
+        "changeset:publish": "pnpm dlx @changesets/cli publish",
+        "release": "turbo build lint test && pnpm run changeset:version && pnpm run changeset:publish"
     },
     "devDependencies": {
         "@biomejs/biome": "^1.9.4",

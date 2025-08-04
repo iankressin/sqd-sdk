@@ -1,30 +1,504 @@
 {
-    "name": "@iankressin/core",
-    "version": "0.0.0",
-    "license": "GPL-3.0-or-later",
-    "publishConfig": {
-        "access": "public"
+  "name": "@iankressin/core",
+  "version": "7.0.0",
+  "license": "GPL-3.0-or-later",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "build:dev": "tsup --config tsup.config.dev.ts"
+  },
+  "dependencies": {
+    "supports-color": "^8.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.83",
+    "@types/supports-color": "^8.1.3",
+    "esbuild-fix-imports-plugin": "^1.0.19",
+    "esbuild-plugin-alias": "^0.2.1",
+    "esbuild-plugin-tsconfig-paths": "^1.0.0",
+    "typescript": "~5.5.4"
+  },
+  "exports": {
+    "./version": {
+      "import": {
+        "types": "./lib/version.d.mts",
+        "default": "./lib/version.js"
+      },
+      "types": "./lib/version.d.ts",
+      "default": "./lib/version.cjs"
     },
-    "files": ["lib", "src"],
-    "main": "./lib/index.cjs",
-    "module": "./lib/index.js",
-    "types": "./lib/index.d.ts",
-    "scripts": {
-        "build": "tsup",
-        "build:dev": "tsup --config tsup.config.dev.ts",
-        "pack": "(cd lib && npm pack --pack-destination ..) && rm -f package.tgz && mv sqd-sdk-core-*.tgz package.tgz",
-        "publish": "npm publish package.tgz",
-        "release": "pnpm run pack && pnpm run publish"
+    ".": {
+      "import": {
+        "types": "./lib/index.d.mts",
+        "default": "./lib/index.js"
+      },
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.cjs"
     },
-    "dependencies": {
-        "supports-color": "^8.1.1"
+    "./validation/util": {
+      "import": {
+        "types": "./lib/validation/util.d.mts",
+        "default": "./lib/validation/util.js"
+      },
+      "types": "./lib/validation/util.d.ts",
+      "default": "./lib/validation/util.cjs"
     },
-    "devDependencies": {
-        "@types/node": "^18.19.83",
-        "@types/supports-color": "^8.1.3",
-        "esbuild-fix-imports-plugin": "^1.0.19",
-        "esbuild-plugin-alias": "^0.2.1",
-        "esbuild-plugin-tsconfig-paths": "^1.0.0",
-        "typescript": "~5.5.4"
+    "./validation/primitives": {
+      "import": {
+        "types": "./lib/validation/primitives.d.mts",
+        "default": "./lib/validation/primitives.js"
+      },
+      "types": "./lib/validation/primitives.d.ts",
+      "default": "./lib/validation/primitives.cjs"
+    },
+    "./validation/interface": {
+      "import": {
+        "types": "./lib/validation/interface.d.mts",
+        "default": "./lib/validation/interface.js"
+      },
+      "types": "./lib/validation/interface.d.ts",
+      "default": "./lib/validation/interface.cjs"
+    },
+    "./validation": {
+      "import": {
+        "types": "./lib/validation/index.d.mts",
+        "default": "./lib/validation/index.js"
+      },
+      "types": "./lib/validation/index.d.ts",
+      "default": "./lib/validation/index.cjs"
+    },
+    "./validation/error": {
+      "import": {
+        "types": "./lib/validation/error.d.mts",
+        "default": "./lib/validation/error.js"
+      },
+      "types": "./lib/validation/error.d.ts",
+      "default": "./lib/validation/error.cjs"
+    },
+    "./validation/dsl": {
+      "import": {
+        "types": "./lib/validation/dsl.d.mts",
+        "default": "./lib/validation/dsl.js"
+      },
+      "types": "./lib/validation/dsl.d.ts",
+      "default": "./lib/validation/dsl.cjs"
+    },
+    "./validation/composite/tuple": {
+      "import": {
+        "types": "./lib/validation/composite/tuple.d.mts",
+        "default": "./lib/validation/composite/tuple.js"
+      },
+      "types": "./lib/validation/composite/tuple.d.ts",
+      "default": "./lib/validation/composite/tuple.cjs"
+    },
+    "./validation/composite/tagged-union": {
+      "import": {
+        "types": "./lib/validation/composite/tagged-union.d.mts",
+        "default": "./lib/validation/composite/tagged-union.js"
+      },
+      "types": "./lib/validation/composite/tagged-union.d.ts",
+      "default": "./lib/validation/composite/tagged-union.cjs"
+    },
+    "./validation/composite/sentinel": {
+      "import": {
+        "types": "./lib/validation/composite/sentinel.d.mts",
+        "default": "./lib/validation/composite/sentinel.js"
+      },
+      "types": "./lib/validation/composite/sentinel.d.ts",
+      "default": "./lib/validation/composite/sentinel.cjs"
+    },
+    "./validation/composite/ref": {
+      "import": {
+        "types": "./lib/validation/composite/ref.d.mts",
+        "default": "./lib/validation/composite/ref.js"
+      },
+      "types": "./lib/validation/composite/ref.d.ts",
+      "default": "./lib/validation/composite/ref.cjs"
+    },
+    "./validation/composite/record": {
+      "import": {
+        "types": "./lib/validation/composite/record.d.mts",
+        "default": "./lib/validation/composite/record.js"
+      },
+      "types": "./lib/validation/composite/record.d.ts",
+      "default": "./lib/validation/composite/record.cjs"
+    },
+    "./validation/composite/option": {
+      "import": {
+        "types": "./lib/validation/composite/option.d.mts",
+        "default": "./lib/validation/composite/option.js"
+      },
+      "types": "./lib/validation/composite/option.d.ts",
+      "default": "./lib/validation/composite/option.cjs"
+    },
+    "./validation/composite/one-of": {
+      "import": {
+        "types": "./lib/validation/composite/one-of.d.mts",
+        "default": "./lib/validation/composite/one-of.js"
+      },
+      "types": "./lib/validation/composite/one-of.d.ts",
+      "default": "./lib/validation/composite/one-of.cjs"
+    },
+    "./validation/composite/object": {
+      "import": {
+        "types": "./lib/validation/composite/object.d.mts",
+        "default": "./lib/validation/composite/object.js"
+      },
+      "types": "./lib/validation/composite/object.d.ts",
+      "default": "./lib/validation/composite/object.cjs"
+    },
+    "./validation/composite/nullable": {
+      "import": {
+        "types": "./lib/validation/composite/nullable.d.mts",
+        "default": "./lib/validation/composite/nullable.js"
+      },
+      "types": "./lib/validation/composite/nullable.d.ts",
+      "default": "./lib/validation/composite/nullable.cjs"
+    },
+    "./validation/composite/key-tagged-union": {
+      "import": {
+        "types": "./lib/validation/composite/key-tagged-union.d.mts",
+        "default": "./lib/validation/composite/key-tagged-union.js"
+      },
+      "types": "./lib/validation/composite/key-tagged-union.d.ts",
+      "default": "./lib/validation/composite/key-tagged-union.cjs"
+    },
+    "./validation/composite/default": {
+      "import": {
+        "types": "./lib/validation/composite/default.d.mts",
+        "default": "./lib/validation/composite/default.js"
+      },
+      "types": "./lib/validation/composite/default.d.ts",
+      "default": "./lib/validation/composite/default.cjs"
+    },
+    "./validation/composite/constant": {
+      "import": {
+        "types": "./lib/validation/composite/constant.d.mts",
+        "default": "./lib/validation/composite/constant.js"
+      },
+      "types": "./lib/validation/composite/constant.d.ts",
+      "default": "./lib/validation/composite/constant.cjs"
+    },
+    "./validation/composite/array": {
+      "import": {
+        "types": "./lib/validation/composite/array.d.mts",
+        "default": "./lib/validation/composite/array.js"
+      },
+      "types": "./lib/validation/composite/array.d.ts",
+      "default": "./lib/validation/composite/array.cjs"
+    },
+    "./portal": {
+      "import": {
+        "types": "./lib/portal/index.d.mts",
+        "default": "./lib/portal/index.js"
+      },
+      "types": "./lib/portal/index.d.ts",
+      "default": "./lib/portal/index.cjs"
+    },
+    "./portal/data-source": {
+      "import": {
+        "types": "./lib/portal/data-source.d.mts",
+        "default": "./lib/portal/data-source.js"
+      },
+      "types": "./lib/portal/data-source.d.ts",
+      "default": "./lib/portal/data-source.cjs"
+    },
+    "./portal/client": {
+      "import": {
+        "types": "./lib/portal/client.d.mts",
+        "default": "./lib/portal/client.js"
+      },
+      "types": "./lib/portal/client.d.ts",
+      "default": "./lib/portal/client.cjs"
+    },
+    "./portal/substrate/query": {
+      "import": {
+        "types": "./lib/portal/substrate/query.d.mts",
+        "default": "./lib/portal/substrate/query.js"
+      },
+      "types": "./lib/portal/substrate/query.d.ts",
+      "default": "./lib/portal/substrate/query.cjs"
+    },
+    "./portal/substrate": {
+      "import": {
+        "types": "./lib/portal/substrate/index.d.mts",
+        "default": "./lib/portal/substrate/index.js"
+      },
+      "types": "./lib/portal/substrate/index.d.ts",
+      "default": "./lib/portal/substrate/index.cjs"
+    },
+    "./portal/solana/query": {
+      "import": {
+        "types": "./lib/portal/solana/query.d.mts",
+        "default": "./lib/portal/solana/query.js"
+      },
+      "types": "./lib/portal/solana/query.d.ts",
+      "default": "./lib/portal/solana/query.cjs"
+    },
+    "./portal/solana": {
+      "import": {
+        "types": "./lib/portal/solana/index.d.mts",
+        "default": "./lib/portal/solana/index.js"
+      },
+      "types": "./lib/portal/solana/index.d.ts",
+      "default": "./lib/portal/solana/index.cjs"
+    },
+    "./portal/evm/query": {
+      "import": {
+        "types": "./lib/portal/evm/query.d.mts",
+        "default": "./lib/portal/evm/query.js"
+      },
+      "types": "./lib/portal/evm/query.d.ts",
+      "default": "./lib/portal/evm/query.cjs"
+    },
+    "./portal/evm": {
+      "import": {
+        "types": "./lib/portal/evm/index.d.mts",
+        "default": "./lib/portal/evm/index.js"
+      },
+      "types": "./lib/portal/evm/index.d.ts",
+      "default": "./lib/portal/evm/index.cjs"
+    },
+    "./pipeline/types": {
+      "import": {
+        "types": "./lib/pipeline/types.d.mts",
+        "default": "./lib/pipeline/types.js"
+      },
+      "types": "./lib/pipeline/types.d.ts",
+      "default": "./lib/pipeline/types.cjs"
+    },
+    "./pipeline": {
+      "import": {
+        "types": "./lib/pipeline/index.d.mts",
+        "default": "./lib/pipeline/index.js"
+      },
+      "types": "./lib/pipeline/index.d.ts",
+      "default": "./lib/pipeline/index.cjs"
+    },
+    "./pipeline/errors": {
+      "import": {
+        "types": "./lib/pipeline/errors.d.mts",
+        "default": "./lib/pipeline/errors.js"
+      },
+      "types": "./lib/pipeline/errors.d.ts",
+      "default": "./lib/pipeline/errors.cjs"
+    },
+    "./logger/logger": {
+      "import": {
+        "types": "./lib/logger/logger.d.mts",
+        "default": "./lib/logger/logger.js"
+      },
+      "types": "./lib/logger/logger.d.ts",
+      "default": "./lib/logger/logger.cjs"
+    },
+    "./logger/level": {
+      "import": {
+        "types": "./lib/logger/level.d.mts",
+        "default": "./lib/logger/level.js"
+      },
+      "types": "./lib/logger/level.d.ts",
+      "default": "./lib/logger/level.cjs"
+    },
+    "./logger": {
+      "import": {
+        "types": "./lib/logger/index.d.mts",
+        "default": "./lib/logger/index.js"
+      },
+      "types": "./lib/logger/index.d.ts",
+      "default": "./lib/logger/index.cjs"
+    },
+    "./logger/demo": {
+      "import": {
+        "types": "./lib/logger/demo.d.mts",
+        "default": "./lib/logger/demo.js"
+      },
+      "types": "./lib/logger/demo.d.ts",
+      "default": "./lib/logger/demo.cjs"
+    },
+    "./logger/sinks/pretty": {
+      "import": {
+        "types": "./lib/logger/sinks/pretty.d.mts",
+        "default": "./lib/logger/sinks/pretty.js"
+      },
+      "types": "./lib/logger/sinks/pretty.d.ts",
+      "default": "./lib/logger/sinks/pretty.cjs"
+    },
+    "./logger/sinks/json": {
+      "import": {
+        "types": "./lib/logger/sinks/json.d.mts",
+        "default": "./lib/logger/sinks/json.js"
+      },
+      "types": "./lib/logger/sinks/json.d.ts",
+      "default": "./lib/logger/sinks/json.cjs"
+    },
+    "./internal/timeout": {
+      "import": {
+        "types": "./lib/internal/timeout.d.mts",
+        "default": "./lib/internal/timeout.js"
+      },
+      "types": "./lib/internal/timeout.d.ts",
+      "default": "./lib/internal/timeout.cjs"
+    },
+    "./internal/throttler": {
+      "import": {
+        "types": "./lib/internal/throttler.d.mts",
+        "default": "./lib/internal/throttler.js"
+      },
+      "types": "./lib/internal/throttler.d.ts",
+      "default": "./lib/internal/throttler.cjs"
+    },
+    "./internal/selection": {
+      "import": {
+        "types": "./lib/internal/selection.d.mts",
+        "default": "./lib/internal/selection.js"
+      },
+      "types": "./lib/internal/selection.d.ts",
+      "default": "./lib/internal/selection.cjs"
+    },
+    "./internal/misc": {
+      "import": {
+        "types": "./lib/internal/misc.d.mts",
+        "default": "./lib/internal/misc.js"
+      },
+      "types": "./lib/internal/misc.d.ts",
+      "default": "./lib/internal/misc.cjs"
+    },
+    "./internal/io": {
+      "import": {
+        "types": "./lib/internal/io.d.mts",
+        "default": "./lib/internal/io.js"
+      },
+      "types": "./lib/internal/io.d.ts",
+      "default": "./lib/internal/io.cjs"
+    },
+    "./internal": {
+      "import": {
+        "types": "./lib/internal/index.d.mts",
+        "default": "./lib/internal/index.js"
+      },
+      "types": "./lib/internal/index.d.ts",
+      "default": "./lib/internal/index.cjs"
+    },
+    "./internal/hex": {
+      "import": {
+        "types": "./lib/internal/hex.d.mts",
+        "default": "./lib/internal/hex.js"
+      },
+      "types": "./lib/internal/hex.d.ts",
+      "default": "./lib/internal/hex.cjs"
+    },
+    "./internal/heap": {
+      "import": {
+        "types": "./lib/internal/heap.d.mts",
+        "default": "./lib/internal/heap.js"
+      },
+      "types": "./lib/internal/heap.d.ts",
+      "default": "./lib/internal/heap.cjs"
+    },
+    "./internal/def": {
+      "import": {
+        "types": "./lib/internal/def.d.mts",
+        "default": "./lib/internal/def.js"
+      },
+      "types": "./lib/internal/def.d.ts",
+      "default": "./lib/internal/def.cjs"
+    },
+    "./internal/async": {
+      "import": {
+        "types": "./lib/internal/async.d.mts",
+        "default": "./lib/internal/async.js"
+      },
+      "types": "./lib/internal/async.d.ts",
+      "default": "./lib/internal/async.cjs"
+    },
+    "./internal/types/primitive": {
+      "import": {
+        "types": "./lib/internal/types/primitive.d.mts",
+        "default": "./lib/internal/types/primitive.js"
+      },
+      "types": "./lib/internal/types/primitive.d.ts",
+      "default": "./lib/internal/types/primitive.cjs"
+    },
+    "./internal/types/misc": {
+      "import": {
+        "types": "./lib/internal/types/misc.d.mts",
+        "default": "./lib/internal/types/misc.js"
+      },
+      "types": "./lib/internal/types/misc.d.ts",
+      "default": "./lib/internal/types/misc.cjs"
+    },
+    "./internal/types": {
+      "import": {
+        "types": "./lib/internal/types/index.d.mts",
+        "default": "./lib/internal/types/index.js"
+      },
+      "types": "./lib/internal/types/index.d.ts",
+      "default": "./lib/internal/types/index.cjs"
+    },
+    "./internal/range/util": {
+      "import": {
+        "types": "./lib/internal/range/util.d.mts",
+        "default": "./lib/internal/range/util.js"
+      },
+      "types": "./lib/internal/range/util.d.ts",
+      "default": "./lib/internal/range/util.cjs"
+    },
+    "./internal/range/requests": {
+      "import": {
+        "types": "./lib/internal/range/requests.d.mts",
+        "default": "./lib/internal/range/requests.js"
+      },
+      "types": "./lib/internal/range/requests.d.ts",
+      "default": "./lib/internal/range/requests.cjs"
+    },
+    "./internal/range/interfaces": {
+      "import": {
+        "types": "./lib/internal/range/interfaces.d.mts",
+        "default": "./lib/internal/range/interfaces.js"
+      },
+      "types": "./lib/internal/range/interfaces.d.ts",
+      "default": "./lib/internal/range/interfaces.cjs"
+    },
+    "./internal/range": {
+      "import": {
+        "types": "./lib/internal/range/index.d.mts",
+        "default": "./lib/internal/range/index.js"
+      },
+      "types": "./lib/internal/range/index.d.ts",
+      "default": "./lib/internal/range/index.cjs"
+    },
+    "./http-client": {
+      "import": {
+        "types": "./lib/http-client/index.d.mts",
+        "default": "./lib/http-client/index.js"
+      },
+      "types": "./lib/http-client/index.d.ts",
+      "default": "./lib/http-client/index.cjs"
+    },
+    "./http-client/client": {
+      "import": {
+        "types": "./lib/http-client/client.d.mts",
+        "default": "./lib/http-client/client.js"
+      },
+      "types": "./lib/http-client/client.d.ts",
+      "default": "./lib/http-client/client.cjs"
+    },
+    "./http-client/body": {
+      "import": {
+        "types": "./lib/http-client/body.d.mts",
+        "default": "./lib/http-client/body.js"
+      },
+      "types": "./lib/http-client/body.d.ts",
+      "default": "./lib/http-client/body.cjs"
     }
+  }
 }

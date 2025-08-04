@@ -1,8 +1,9 @@
 import {globSync} from 'glob'
 import {readFileSync, writeFileSync} from 'node:fs'
+import {BUILD_FOLDER} from './constants'
 
 export function updatePackageExportsPath(basePath: string) {
-    console.log('Generating package.json exports...')
+    console.log('Generating package.json exports for ', basePath)
 
     const entries = globSync(`${basePath}/src/**/*.ts`, {
         ignore: [`${basePath}/src/**/*.test.ts`],
@@ -17,29 +18,27 @@ export function updatePackageExportsPath(basePath: string) {
                     types?: string
                     default: string
                 }
-                require: {
-                    types: string
-                    default: string
-                }
+                types: string
+                default: string
             }
         >
     >((acc, rawEntry) => {
         const entry = rawEntry.match(/src\/(.*)\.ts/)![1]!
         const exportsEntry = entry === 'index' ? '.' : `./${entry.replace(/\/index$/, '')}`
-        const importEntry = `./${entry}.js`
-        const requireEntry = `./${entry}.cjs`
+        const importEntry = `./${BUILD_FOLDER}/${entry}.js`
+        const requireEntry = `./${BUILD_FOLDER}/${entry}.cjs`
         acc[exportsEntry] = {
             import: {
-                types: `./${entry}.d.mts`,
+                types: `./${BUILD_FOLDER}/${entry}.d.mts`,
                 default: importEntry,
             },
-            require: {
-                types: `./${entry}.d.ts`,
-                default: requireEntry,
-            },
+            types: `./${BUILD_FOLDER}/${entry}.d.ts`,
+            default: requireEntry,
         }
         return acc
     }, {})
 
-    writeFileSync(`${basePath}/lib/package.json`, JSON.stringify(pkg, null, 2))
+    writeFileSync(`${basePath}/package.json`, JSON.stringify(pkg, null, 2))
+
+    console.log('Exports generated successfully')
 }

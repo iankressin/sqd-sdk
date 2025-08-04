@@ -1,7 +1,7 @@
-import {HttpClient} from '@iankresin/core/http-client'
-import {type Data, type DataBatch, target, type UnfinalizedDataTarget, type DataRef} from '@iankresin/core/pipeline'
-import {PortalClient} from '@iankresin/core/portal'
-import {solanaPortalDataSource} from '@iankresin/solana-stream'
+import {HttpClient} from '@iankressin/core/http-client'
+import {type Data, type DataBatch, target, type UnfinalizedDataTarget, type DataRef} from '@iankressin/core/pipeline'
+import {PortalClient} from '@iankressin/core/portal'
+import {solanaPortalDataSource} from '@iankressin/solana-stream'
 
 async function main() {
     let portal = new PortalClient({

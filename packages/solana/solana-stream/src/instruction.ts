@@ -1,5 +1,5 @@
-import type {Hex} from '@iankresin/core/internal/types/primitive'
-import {toHex} from '@iankresin/core/internal/hex'
+import type {Hex} from '@iankressin/core/internal/types/primitive'
+import {toHex} from '@iankressin/core/internal/hex'
 import bs58 from 'bs58'
 
 export const DATA_SYM = Symbol('DATA')
