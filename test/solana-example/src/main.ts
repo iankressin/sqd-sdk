@@ -2,15 +2,13 @@ import {HttpClient} from '@sqd-sdk/core/http-client'
 import {
     type Data,
     type DataBatch,
-    target,
     type UnfinalizedDataTarget,
     type DataRef,
-    transformer,
-    DataCursor,
-    source,
+    finalizer,
+    DataTarget,
 } from '@sqd-sdk/core/pipeline'
 import {PortalClient} from '@sqd-sdk/core/portal'
-import {blockRefer, solanaPortalDataSource} from '@sqd-sdk/solana-stream'
+import {solanaPortalDataSource} from '@sqd-sdk/solana-stream'
 
 async function main() {
     let portal = new PortalClient({
@@ -23,7 +21,7 @@ async function main() {
 
     let fromBlock = await portal.getHead().then((h) => (h?.number ?? 0) - 50_000)
 
-    await solanaPortalDataSource({
+    const src = solanaPortalDataSource({
         portal,
         query: {
             fields: {
@@ -55,24 +53,25 @@ async function main() {
             ],
         },
     })
-        .pipeTo(
-            target({
-                unfinalized: true,
-                writer: async () => {
-                    return {
-                        offset: undefined,
-                        write: async (batch) => {
-                            console.log(`${batch.offset.number}/${batch.head.number}`)
-                            return batch.offset
-                        },
-                        fork: async (fork) => {
-                            console.log(fork.heads[fork.heads.length - 1]?.number)
-                            return fork.heads[0]
-                        },
-                    }
+
+    const trg = new DataTarget({
+        unfinalized: true,
+        writer: async () => {
+            return {
+                offset: undefined,
+                write: async (batch) => {
+                    console.log(`${batch.offset.number}/${batch.head.number} (${batch.finalizedHead?.number ?? 0})`)
+                    return batch.offset
                 },
-            }),
-        )
+                fork: async (fork) => {
+                    console.log(fork.heads[fork.heads.length - 1]?.number)
+                    return fork.heads[0]
+                },
+            }
+        },
+    })
+
+    await src.pipeThrough(finalizer()).pipeTo(trg)
 }
 
 interface StateManager<T extends Data<any, any>> {
@@ -81,14 +80,14 @@ interface StateManager<T extends Data<any, any>> {
     fork(refs: T['ref'][]): Promise<T['ref'] | undefined>
 }
 
-function createStateWriter<T extends Data<any, any>>(opts: {
+function createStateTarget<T extends Data<any, any>>(opts: {
     state: StateManager<T>
     transact: (batch: DataBatch<T>) => Promise<unknown>
     rollback: (block: DataRef<T>) => Promise<unknown>
 }): UnfinalizedDataTarget<T> {
     const {state, transact, rollback} = opts
 
-    return target<T>({
+    return new DataTarget<T>({
         unfinalized: true,
         writer: async () => {
             const head = await state.get()

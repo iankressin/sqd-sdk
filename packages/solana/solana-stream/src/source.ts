@@ -2,10 +2,10 @@ import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal/range/
 import {
     type DataBatch,
     type DataRef,
-    type DataCursor,
-    source,
     type UnfinalizedDataSource,
     ForkException,
+    type Data,
+    DataSource,
 } from '@sqd-sdk/core/pipeline'
 import {cast} from '@sqd-sdk/core/validation'
 import {
@@ -31,32 +31,37 @@ export interface SolanaPortalDataReaderOptions<Q extends SolanaQueryOptions> {
     query: Q
 }
 
-export interface BlockRef {
-    number: number
-    hash?: string
+export interface BlockRefValue {
+    readonly number: number
+    readonly hash?: string
 }
 
-export interface SolanaPortalData<Q extends SolanaQueryOptions> {
-    item: Block<GetFields<Q['fields']>>
-    ref: BlockRef
-}
+export type SolanaPortalData<Q extends SolanaQueryOptions> = Data<Block<GetFields<Q['fields']>>, BlockRef>
 
-export const blockRefer = {
-    get(block: {header: {number: number; hash?: string}}): BlockRef {
-        return {number: block.header.number, hash: block.header.hash}
-    },
+export class BlockRef implements DataRef<BlockRef> {
+    static fromBlock(block: {header: {number: number; hash?: string}}): BlockRef {
+        return new BlockRef(block.header)
+    }
 
-    compare(a: BlockRef, b: BlockRef) {
-        if (a.number < b.number) return 'ls'
-        if (a.number > b.number) return 'gt'
-        if (a.hash === b.hash) return 'eq'
+    readonly number: number
+    readonly hash?: string
+
+    constructor(value: BlockRefValue) {
+        this.number = value.number
+        this.hash = value.hash
+    }
+
+    compare(other: BlockRef) {
+        if (this.number < other.number) return 'ls'
+        if (this.number > other.number) return 'gt'
+        if (this.hash === other.hash) return 'eq'
         return 'fk'
-    },
-} satisfies DataCursor<SolanaPortalData<any>>
+    }
+}
 
 function calculateHead(portalHead: BlockRef, lastBlock: BlockRef | undefined): BlockRef {
     if (!lastBlock) return portalHead
-    return blockRefer.compare(lastBlock, portalHead) === 'gt' ? lastBlock : portalHead
+    return lastBlock.compare(portalHead) === 'gt' ? lastBlock : portalHead
 }
 
 export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
@@ -68,7 +73,7 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
     const headThrottler = new Throttler(async () => portal.getHead(), 5_000)
 
     const createDataStream = async function* (
-        offset?: DataRef<SolanaPortalData<Q>>,
+        offset?: BlockRef,
     ): AsyncIterableIterator<DataBatch<SolanaPortalData<Q>>> {
         let parentHash = offset?.hash
         const requestsBounded = offset ? applyRangeBound(requests, {from: offset.number + 1}) : requests
@@ -94,29 +99,36 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
                         if (!portalHead) continue // no data?
 
                         // FIXME: investigate type issue
-                        const data = batch.blocks.map((b) => mapBlock(b, fields)) as Block<GetFields<Q['fields']>>[]
+                        const data = batch.blocks.map((b) => {
+                            const value = mapBlock(b, fields)
+                            return {
+                                value,
+                                ref: BlockRef.fromBlock(value),
+                            }
+                        }) as SolanaPortalData<Q>[]
 
-                        const lastRef = blockRefer.get(last(data))
-                        const head = calculateHead(portalHead, lastRef)
+                        const offset = last(data).ref
+                        const head = calculateHead(new BlockRef(portalHead), offset)
+                        const finalizedHead = batch.finalizedHead
+                            ? calculateHead(new BlockRef(batch.finalizedHead), offset)
+                            : undefined
 
                         yield {
                             data,
-                            finalizedHead: batch.finalizedHead,
+                            finalizedHead,
                             head,
-                            offset: lastRef,
-                            cursor: blockRefer,
+                            offset,
                         }
 
-                        if (lastRef) {
-                            fromBlock = lastRef.number + 1
+                        if (offset) {
+                            fromBlock = offset.number + 1
                             dataProcessed = true
                         }
                     }
                 } catch (err) {
                     if (isForkException(err)) {
-                        throw new ForkException({
-                            heads: err.lastBlocks,
-                            cursor: blockRefer,
+                        throw new ForkException<SolanaPortalData<Q>>({
+                            heads: err.lastBlocks.map((b) => new BlockRef(b)),
                         })
                     }
                     throw err
@@ -130,7 +142,7 @@ export function solanaPortalDataSource<Q extends SolanaQueryOptions>(
         }
     }
 
-    return source<SolanaPortalData<Q>>({
+    return new DataSource<SolanaPortalData<Q>>({
         unfinalized: true,
         reader: async (opts) => {
             const stream = createDataStream(opts.offset)

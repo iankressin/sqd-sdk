@@ -1,16 +1,15 @@
-import {type Data, type DataCursor, type UnfinalizedDataSource, source} from '../pipeline'
+import {type Data, DataSource, type UnfinalizedDataSource} from '../pipeline'
 import type {PortalClient} from './client'
 
 export interface PortalDataSourceOptions<T extends Data> {
     portal: PortalClient
     query: any
-    cursor: DataCursor<T>
 }
 
 export function portalDataSource<T extends Data>(options: PortalDataSourceOptions<T>): UnfinalizedDataSource<T> {
-    const {portal, query, cursor} = options
+    const {portal, query} = options
 
-    return source({
+    return new DataSource({
         unfinalized: true,
         reader: async (opts) => {
             return {
@@ -19,7 +18,6 @@ export function portalDataSource<T extends Data>(options: PortalDataSourceOption
                         data: [],
                         head: {},
                         offset: opts.offset,
-                        cursor,
                     }
                 },
             }
