@@ -1,6 +1,6 @@
 {
   "name": "@iankressin/solana-stream",
-  "version": "7.1.0",
+  "version": "7.1.1",
   "description": "SVM block data streamer",
   "license": "GPL-3.0-or-later",
   "repository": "git@github.com:subsquid/squid.git",
@@ -19,7 +19,7 @@
     "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types"
   },
   "dependencies": {
-    "@iankressin/core": "workspace:^8.0.0",
+    "@iankressin/core": "workspace:^8.1.0",
     "bs58": "^6.0.0"
   },
   "devDependencies": {
