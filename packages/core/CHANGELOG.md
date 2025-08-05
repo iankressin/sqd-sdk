@@ -1,5 +1,12 @@
 # @iankressin/core
 
+## 9.0.0
+
+### Major Changes
+
+- 2f45a53: test
+- de16860: test
+
 ## 8.1.0
 
 ### Minor Changes
