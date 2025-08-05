@@ -41,5 +41,9 @@ export function updatePackageExportsPath(basePath: string) {
         return acc
     }, {})
 
+    pkg.main = pkg.main.replace('lib/', '')
+    pkg.module = pkg.module.replace('lib/', '')
+    pkg.types = pkg.types.replace('lib/', '')
+
     writeFileSync(`${basePath}/lib/package.json`, JSON.stringify(pkg, null, 2))
 }

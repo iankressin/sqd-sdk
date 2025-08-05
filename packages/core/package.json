@@ -6,9 +6,9 @@
         "access": "public"
     },
     "files": ["lib"],
-    "main": "./index.cjs",
-    "module": "./index.js",
-    "types": "./index.d.ts",
+    "main": "./lib/index.cjs",
+    "module": "./lib/index.js",
+    "types": "./lib/index.d.ts",
     "scripts": {
         "build": "tsup",
         "build:dev": "tsup --config tsup.config.dev.ts",
