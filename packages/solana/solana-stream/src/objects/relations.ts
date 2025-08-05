@@ -1,4 +1,4 @@
-import {bisect, maybeLast} from '@iankresin/core/internal/misc'
+import {bisect, maybeLast} from '@iankressin/core/internal/misc'
 import type {Block, RequiredFieldSelection, Transaction} from './types'
 
 export function setUpRelations(block: Block<RequiredFieldSelection>): void {

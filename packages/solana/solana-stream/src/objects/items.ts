@@ -1,4 +1,4 @@
-import type {Hex} from '@iankresin/core/internal/types/primitive'
+import type {Hex} from '@iankressin/core/internal/types/primitive'
 import {getInstructionDescriptor} from '../instruction'
 import type * as base from './types'
 
@@ -23,7 +23,7 @@ export {
     TokenBalanceFieldSelection,
     TransactionFields,
     TransactionFieldSelection,
-} from '@iankresin/core/portal/solana'
+} from '@iankressin/core/portal/solana'
 
 export function blockFromPartial<F extends base.RequiredFieldSelection>(src: base.BlockPartial<F>): base.Block<F> {
     // FIXME: why types are broken

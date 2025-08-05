@@ -1,6 +1,6 @@
 {
     "name": "solana-example",
-    "version": "0.0.0",
+    "version": "0.0.8",
     "private": true,
     "scripts": {
         "build": "rm -rf lib && tsc"
@@ -8,8 +8,8 @@
     "dependencies": {
         "@aws-sdk/core": "^3.775.0",
         "@clickhouse/client": "^1.11.2",
-        "@sqd-sdk/core": "workspace:../../packages/core/lib",
-        "@sqd-sdk/solana-stream": "workspace:../../packages/solana/solana-stream/lib",
+        "@iankressin/core": "workspace:^7.0.0",
+        "@iankressin/solana-stream": "workspace:^7.0.0",
         "dotenv": "^16.4.7"
     },
     "devDependencies": {

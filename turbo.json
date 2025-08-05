@@ -17,17 +17,17 @@
             "persistent": true,
             "cache": false
         },
-        "@sqd-sdk/solana-stream#build": {
-            "dependsOn": ["@sqd-sdk/core#build"]
+        "@iankressin/solana-stream#build": {
+            "dependsOn": ["@iankressin/core#build"]
         },
-        "@sqd-sdk/solana-stream#build:dev": {
-            "dependsOn": ["@sqd-sdk/core#build:dev"]
+        "@iankressin/solana-stream#build:dev": {
+            "dependsOn": ["@iankressin/core#build:dev"]
         },
-        "@sqd-sdk/solana-stream#test": {
-            "dependsOn": ["@sqd-sdk/core#test", "@sqd-sdk/solana-stream#build"]
+        "@iankressin/solana-stream#test": {
+            "dependsOn": ["@iankressin/core#test", "@iankressin/solana-stream#build"]
         },
         "solana-example#build": {
-            "dependsOn": ["@sqd-sdk/core#build", "@sqd-sdk/solana-stream#build"]
+            "dependsOn": ["@iankressin/core#build", "@iankressin/solana-stream#build"]
         }
     }
 }

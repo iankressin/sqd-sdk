@@ -2,16 +2,14 @@ import type {Options} from 'tsup'
 import {globSync} from 'glob'
 import {updatePackageExportsPath} from './package-exports-path'
 import {readFileSync} from 'node:fs'
+import {BUILD_FOLDER} from './constants'
 
 export function getBaseTsupConfig(basePath: string): Options {
-    const entries = globSync(
-        `${basePath}/src/**/*.ts`,
-        {ignore: [`${basePath}/src/**/*.test.ts`]}
-    )
+    const entries = globSync(`${basePath}/src/**/*.ts`, {ignore: [`${basePath}/src/**/*.test.ts`]})
 
     return {
         entry: entries,
-        outDir: 'lib',
+        outDir: BUILD_FOLDER,
         format: ['cjs', 'esm'],
         bundle: false,
         dts: true,
@@ -33,14 +31,11 @@ export function getBaseTsupConfig(basePath: string): Options {
 }
 
 export function getDevBaseTsupConfig(basePath: string): Options {
-    const entries = globSync(
-        `${basePath}/src/**/*.ts`,
-        {ignore: [`${basePath}/src/**/*.test.ts`]}
-    )
+    const entries = globSync(`${basePath}/src/**/*.ts`, {ignore: [`${basePath}/src/**/*.test.ts`]})
 
     return {
         entry: entries,
-        outDir: 'lib',
+        outDir: BUILD_FOLDER,
         format: 'cjs',
         bundle: false,
         clean: true,
@@ -59,4 +54,3 @@ export function getDevBaseTsupConfig(basePath: string): Options {
         },
     }
 }
-
