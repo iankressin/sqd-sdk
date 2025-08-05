@@ -1,5 +1,5 @@
 import {assert} from '../internal/misc'
-import type {Data, DataFork} from './types'
+import type {Data, DataFork} from './data'
 
 export class ForkException<D extends Data> extends Error {
     readonly isSqdForkException = true

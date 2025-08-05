@@ -1,7 +1,17 @@
 import {HttpClient} from '@sqd-sdk/core/http-client'
-import {type Data, type DataBatch, target, type UnfinalizedDataTarget, type DataRef} from '@sqd-sdk/core/pipeline'
+import {createLogger} from '@sqd-sdk/core/logger'
+import {
+    type Data,
+    type DataBatch,
+    type UnfinalizedDataTarget,
+    type DataRef,
+    DataTarget,
+    transformer,
+    type UnfinalizedDataSource,
+    type DataDuplexFactory,
+} from '@sqd-sdk/core/pipeline'
 import {PortalClient} from '@sqd-sdk/core/portal'
-import {solanaPortalDataSource} from '@sqd-sdk/solana-stream'
+import {type SolanaPortalData, solanaPortalDataSource} from '@sqd-sdk/solana-stream'
 
 async function main() {
     let portal = new PortalClient({
@@ -14,7 +24,7 @@ async function main() {
 
     let fromBlock = await portal.getHead().then((h) => (h?.number ?? 0) - 50_000)
 
-    await solanaPortalDataSource({
+    const src = solanaPortalDataSource({
         portal,
         query: {
             fields: {
@@ -45,37 +55,18 @@ async function main() {
                 },
             ],
         },
-    }).pipeTo(
-        //createStateWriter({
-        //    state: {} as any,
-        //    transact: async (batch) => {
-        //        await client.insert({
-        //            table: 'transactions',
-        //            values: batch.data.flatMap((block) =>
-        //                block.transactions.map((tx: any) => ({
-        //                    number: block.header.number,
-        //                    txHash: tx.signatures[0],
-        //                }))
-        //            ),
-        //        })
-        //    },
-        //    rollback: async (block) => {
-        //        await client.query({
-        //            query: `DELETE FROM transactions WHERE number > ${block.number}`,
-        //            format: 'JSONEachRow',
-        //        })
-        //    },
-        //})
-        target({
+    })
+
+    await src.pipeThrough(createProgressTracker('solana')).pipeTo(
+        new DataTarget({
             unfinalized: true,
             writer: async () => {
                 return {
                     offset: undefined,
                     write: async (batch) => {
-                        console.log(`${batch.offset.number}/${batch.head.number}`)
+                        return batch.offset
                     },
                     fork: async (fork) => {
-                        console.log(fork.heads[fork.heads.length - 1]?.number)
                         return fork.heads[0]
                     },
                 }
@@ -90,14 +81,14 @@ interface StateManager<T extends Data<any, any>> {
     fork(refs: T['ref'][]): Promise<T['ref'] | undefined>
 }
 
-function createStateWriter<T extends Data<any, any>>(opts: {
+function createStateTarget<T extends Data<any, any>>(opts: {
     state: StateManager<T>
     transact: (batch: DataBatch<T>) => Promise<unknown>
     rollback: (block: DataRef<T>) => Promise<unknown>
 }): UnfinalizedDataTarget<T> {
     const {state, transact, rollback} = opts
 
-    return target<T>({
+    return new DataTarget<T>({
         unfinalized: true,
         writer: async () => {
             const head = await state.get()
@@ -126,29 +117,34 @@ function createStateWriter<T extends Data<any, any>>(opts: {
     })
 }
 
-// function createProgressTracker<T extends SolanaPortalData<any>>(prefix: string) {
-//     const logger = createLogger(`sqd:${prefix}`)
-//
-//     return transformer<T, T>({
-//         transform: async (batch) => {
-//             if (batch.data.length > 0) {
-//                 const {data, head} = batch
-//                 logger.info(
-//                     [
-//                         `[${new Date().toISOString()}] progress: ${last(data)?.header.number ?? 0} / ${
-//                             head.number ?? 0
-//                         }`,
-//                         `blocks: ${data.length}`,
-//                     ].join(', ')
-//                 )
-//             }
-//             return batch
-//         },
-//         fork: async (fork) => {
-//             return fork
-//         },
-//         cursor: blockRefer as DataCursor<T>,
-//     })
-// }
+function createProgressTracker<T extends Data<any, {number: number}>>(
+    prefix: string,
+): DataDuplexFactory<{
+    target: UnfinalizedDataTarget<T>
+    source: UnfinalizedDataSource<T>
+}> {
+    const logger = createLogger(`sqd:${prefix}`)
+
+    return transformer<T, T>({
+        transformer: async (opts) => {
+            return {
+                offset: opts.offset,
+                transform: async (batch) => {
+                    if (batch.data.length > 0) {
+                        const {offset, head} = batch
+                        logger.info(
+                            [
+                                `[${new Date().toISOString()}] progress: ${offset.number} / ${head.number}`,
+                                `blocks: ${batch.data.length}`,
+                            ].join(', '),
+                        )
+                    }
+                    return batch
+                },
+                fork: async (fork) => fork,
+            }
+        },
+    })
+}
 
 main()

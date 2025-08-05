@@ -59,19 +59,6 @@ importers:
         specifier: ~5.5.4
         version: 5.5.4
 
-  packages/solana/solana-stream/lib:
-    dependencies:
-      '@sqd-sdk/core':
-        specifier: workspace:../../core/lib
-        version: link:../../core/lib
-      bs58:
-        specifier: ^6.0.0
-        version: 6.0.0
-    devDependencies:
-      typescript:
-        specifier: ~5.5.4
-        version: 5.5.4
-
   test/solana-example:
     dependencies:
       '@aws-sdk/core':
