@@ -52,7 +52,7 @@ importers:
   packages/solana/solana-stream:
     dependencies:
       '@iankressin/core':
-        specifier: workspace:^6.0.0
+        specifier: workspace:^7.0.0
         version: link:../../core
       bs58:
         specifier: ^6.0.0
@@ -71,10 +71,10 @@ importers:
         specifier: ^1.11.2
         version: 1.11.2
       '@iankressin/core':
-        specifier: workspace:^6.0.0
+        specifier: workspace:^7.0.0
         version: link:../../packages/core
       '@iankressin/solana-stream':
-        specifier: workspace:^6.0.0
+        specifier: workspace:^7.0.0
         version: link:../../packages/solana/solana-stream
       dotenv:
         specifier: ^16.4.7
