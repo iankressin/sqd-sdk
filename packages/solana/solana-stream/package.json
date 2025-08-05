@@ -1,38 +1,11 @@
 {
-  "name": "@iankressin/solana-stream",
-  "version": "7.1.1",
-  "description": "SVM block data streamer",
-  "license": "GPL-3.0-or-later",
-  "repository": "git@github.com:subsquid/squid.git",
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "lib",
-    "src"
-  ],
-  "main": "./lib/index.cjs",
-  "module": "./lib/index.js",
-  "types": "./lib/index.d.ts",
-  "scripts": {
-    "build": "tsup",
-    "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types"
-  },
-  "dependencies": {
-    "@iankressin/core": "workspace:*",
-    "bs58": "^6.0.0"
-  },
-  "devDependencies": {
-    "typescript": "~5.5.4"
-  },
-  "exports": {
-    "./version": {
-      "import": {
-        "types": "./lib/version.d.mts",
-        "default": "./lib/version.js"
-      },
-      "types": "./lib/version.d.ts",
-      "default": "./lib/version.cjs"
+    "name": "@iankressin/solana-stream",
+    "version": "7.1.1",
+    "description": "SVM block data streamer",
+    "license": "GPL-3.0-or-later",
+    "repository": "git@github.com:subsquid/squid.git",
+    "publishConfig": {
+        "access": "public"
     },
     "files": ["lib", "src"],
     "main": "./lib/index.cjs",
@@ -58,77 +31,102 @@
             "types": "./lib/version.d.ts",
             "default": "./lib/version.cjs"
         },
-        "./source": {
-            "import": {
-                "types": "./lib/source.d.mts",
-                "default": "./lib/source.js"
-            },
-            "types": "./lib/source.d.ts",
-            "default": "./lib/source.cjs"
+        "files": ["lib", "src"],
+        "main": "./lib/index.cjs",
+        "module": "./lib/index.js",
+        "types": "./lib/index.d.ts",
+        "scripts": {
+            "build": "tsup",
+            "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types"
         },
-        "./schema": {
-            "import": {
-                "types": "./lib/schema.d.mts",
-                "default": "./lib/schema.js"
-            },
-            "types": "./lib/schema.d.ts",
-            "default": "./lib/schema.cjs"
+        "dependencies": {
+            "@iankressin/core": "workspace:*",
+            "bs58": "^6.0.0"
         },
-        "./query": {
-            "import": {
-                "types": "./lib/query.d.mts",
-                "default": "./lib/query.js"
-            },
-            "types": "./lib/query.d.ts",
-            "default": "./lib/query.cjs"
+        "devDependencies": {
+            "typescript": "~5.5.4"
         },
-        "./instruction": {
-            "import": {
-                "types": "./lib/instruction.d.mts",
-                "default": "./lib/instruction.js"
+        "exports": {
+            "./version": {
+                "import": {
+                    "types": "./lib/version.d.mts",
+                    "default": "./lib/version.js"
+                },
+                "types": "./lib/version.d.ts",
+                "default": "./lib/version.cjs"
             },
-            "types": "./lib/instruction.d.ts",
-            "default": "./lib/instruction.cjs"
-        },
-        ".": {
-            "import": {
-                "types": "./lib/index.d.mts",
-                "default": "./lib/index.js"
+            "./source": {
+                "import": {
+                    "types": "./lib/source.d.mts",
+                    "default": "./lib/source.js"
+                },
+                "types": "./lib/source.d.ts",
+                "default": "./lib/source.cjs"
             },
-            "types": "./lib/index.d.ts",
-            "default": "./lib/index.cjs"
-        },
-        "./objects/types": {
-            "import": {
-                "types": "./lib/objects/types.d.mts",
-                "default": "./lib/objects/types.js"
+            "./schema": {
+                "import": {
+                    "types": "./lib/schema.d.mts",
+                    "default": "./lib/schema.js"
+                },
+                "types": "./lib/schema.d.ts",
+                "default": "./lib/schema.cjs"
             },
-            "types": "./lib/objects/types.d.ts",
-            "default": "./lib/objects/types.cjs"
-        },
-        "./objects/relations": {
-            "import": {
-                "types": "./lib/objects/relations.d.mts",
-                "default": "./lib/objects/relations.js"
+            "./query": {
+                "import": {
+                    "types": "./lib/query.d.mts",
+                    "default": "./lib/query.js"
+                },
+                "types": "./lib/query.d.ts",
+                "default": "./lib/query.cjs"
             },
-            "types": "./lib/objects/relations.d.ts",
-            "default": "./lib/objects/relations.cjs"
-        },
-        "./objects/items": {
-            "import": {
-                "types": "./lib/objects/items.d.mts",
-                "default": "./lib/objects/items.js"
+            "./instruction": {
+                "import": {
+                    "types": "./lib/instruction.d.mts",
+                    "default": "./lib/instruction.js"
+                },
+                "types": "./lib/instruction.d.ts",
+                "default": "./lib/instruction.cjs"
             },
-            "types": "./lib/objects/items.d.ts",
-            "default": "./lib/objects/items.cjs"
-        },
-        "./objects": {
-            "import": {
-                "types": "./lib/objects/index.d.mts",
-                "default": "./lib/objects/index.js"
+            ".": {
+                "import": {
+                    "types": "./lib/index.d.mts",
+                    "default": "./lib/index.js"
+                },
+                "types": "./lib/index.d.ts",
+                "default": "./lib/index.cjs"
             },
-            "types": "./lib/objects/index.d.ts",
-            "default": "./lib/objects/index.cjs"
+            "./objects/types": {
+                "import": {
+                    "types": "./lib/objects/types.d.mts",
+                    "default": "./lib/objects/types.js"
+                },
+                "types": "./lib/objects/types.d.ts",
+                "default": "./lib/objects/types.cjs"
+            },
+            "./objects/relations": {
+                "import": {
+                    "types": "./lib/objects/relations.d.mts",
+                    "default": "./lib/objects/relations.js"
+                },
+                "types": "./lib/objects/relations.d.ts",
+                "default": "./lib/objects/relations.cjs"
+            },
+            "./objects/items": {
+                "import": {
+                    "types": "./lib/objects/items.d.mts",
+                    "default": "./lib/objects/items.js"
+                },
+                "types": "./lib/objects/items.d.ts",
+                "default": "./lib/objects/items.cjs"
+            },
+            "./objects": {
+                "import": {
+                    "types": "./lib/objects/index.d.mts",
+                    "default": "./lib/objects/index.js"
+                },
+                "types": "./lib/objects/index.d.ts",
+                "default": "./lib/objects/index.cjs"
+            }
         }
     }
 }
