@@ -1,5 +1,18 @@
 # @iankressin/solana-stream
 
+## 7.1.0
+
+### Minor Changes
+
+- 03e2e4f: Test
+- 05a1c90: test
+
+### Patch Changes
+
+- Updated dependencies [03e2e4f]
+- Updated dependencies [05a1c90]
+  - @iankressin/core@8.0.0
+
 ## 7.0.0
 
 ### Major Changes
