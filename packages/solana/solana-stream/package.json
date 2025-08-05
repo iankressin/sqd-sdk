@@ -1,11 +1,38 @@
 {
-    "name": "@iankressin/solana-stream",
-    "version": "7.0.0",
-    "description": "SVM block data streamer",
-    "license": "GPL-3.0-or-later",
-    "repository": "git@github.com:subsquid/squid.git",
-    "publishConfig": {
-        "access": "public"
+  "name": "@iankressin/solana-stream",
+  "version": "7.1.1",
+  "description": "SVM block data streamer",
+  "license": "GPL-3.0-or-later",
+  "repository": "git@github.com:subsquid/squid.git",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "lib",
+    "src"
+  ],
+  "main": "./lib/index.cjs",
+  "module": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types"
+  },
+  "dependencies": {
+    "@iankressin/core": "workspace:*",
+    "bs58": "^6.0.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.5.4"
+  },
+  "exports": {
+    "./version": {
+      "import": {
+        "types": "./lib/version.d.mts",
+        "default": "./lib/version.js"
+      },
+      "types": "./lib/version.d.ts",
+      "default": "./lib/version.cjs"
     },
     "files": ["lib", "src"],
     "main": "./lib/index.cjs",

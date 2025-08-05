@@ -1,5 +1,11 @@
 # @iankressin/core
 
+## 8.1.0
+
+### Minor Changes
+
+- b8fdb60: test
+
 ## 8.0.0
 
 ### Major Changes
