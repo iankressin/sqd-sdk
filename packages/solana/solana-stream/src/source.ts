@@ -1,12 +1,6 @@
-import {applyRangeBound, mergeRangeRequests} from '@iankressin/core/internal'
-import {
-    type DataBatch,
-    type DataRef,
-    type DataCursor,
-    source,
-    type UnfinalizedDataSource,
-} from '@iankressin/core/pipeline'
-import {cast} from '@iankressin/core/validation'
+import {applyRangeBound, mergeRangeRequests} from '@sqd-sdk/core/internal'
+import {type DataBatch, type DataRef, type DataCursor, source, type UnfinalizedDataSource} from '@sqd-sdk/core/pipeline'
+import {cast} from '@sqd-sdk/core/validation'
 import {
     type Block,
     blockFromPartial,
@@ -18,10 +12,10 @@ import {
 import {getDataSchema} from './schema'
 import {setUpRelations} from './objects/relations'
 import {mergeDataRequests, type SolanaQueryOptions} from './query'
-import {PortalClient, type PortalClientOptions} from '@iankressin/core/portal'
-import {type MergeSelection, mergeSelection} from '@iankressin/core/internal'
-import {assert, last} from '@iankressin/core/internal'
-import {Throttler} from '@iankressin/core/internal'
+import {PortalClient, type PortalClientOptions} from '@sqd-sdk/core/portal'
+import {type MergeSelection, mergeSelection} from '@sqd-sdk/core/internal'
+import {assert, last} from '@sqd-sdk/core/internal'
+import {Throttler} from '@sqd-sdk/core/internal'
 
 type GetFields<F extends FieldSelection> = MergeSelection<RequiredFieldSelection, F>
 

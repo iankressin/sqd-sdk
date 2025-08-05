@@ -1,4 +1,4 @@
-# @iankressin/core
+# @sqd-sdk/core
 
 ## 9.0.0
 

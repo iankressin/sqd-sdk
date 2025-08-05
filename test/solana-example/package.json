@@ -8,8 +8,8 @@
     "dependencies": {
         "@aws-sdk/core": "^3.775.0",
         "@clickhouse/client": "^1.11.2",
-        "@iankressin/core": "workspace:*",
-        "@iankressin/solana-stream": "workspace:*",
+        "@sqd-sdk/core": "workspace:*",
+        "@sqd-sdk/solana-stream": "workspace:*",
         "dotenv": "^16.4.7"
     },
     "devDependencies": {

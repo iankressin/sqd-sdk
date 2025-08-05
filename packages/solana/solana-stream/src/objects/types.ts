@@ -1,6 +1,6 @@
-import type * as Solana from '@iankressin/core/portal/solana'
-import type {Trues} from '@iankressin/core/internal/selection'
-import type {Hex, Simplify} from '@iankressin/core/internal/types'
+import type * as Solana from '@sqd-sdk/core/portal/solana'
+import type {Trues} from '@sqd-sdk/core/internal/selection'
+import type {Hex, Simplify} from '@sqd-sdk/core/internal/types'
 
 export type FieldSelection = Solana.FieldSelection
 

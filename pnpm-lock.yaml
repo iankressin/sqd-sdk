@@ -51,7 +51,7 @@ importers:
 
   packages/solana/solana-stream:
     dependencies:
-      '@iankressin/core':
+      '@sqd-sdk/core':
         specifier: workspace:*
         version: link:../../core
       bs58:
@@ -70,10 +70,10 @@ importers:
       '@clickhouse/client':
         specifier: ^1.11.2
         version: 1.11.2
-      '@iankressin/core':
+      '@sqd-sdk/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@iankressin/solana-stream':
+      '@sqd-sdk/solana-stream':
         specifier: workspace:*
         version: link:../../packages/solana/solana-stream
       dotenv:

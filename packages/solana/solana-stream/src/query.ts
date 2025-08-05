@@ -1,6 +1,6 @@
-import type * as Solana from '@iankressin/core/portal/solana'
-import {mergeSelection, type MergeSelection} from '@iankressin/core/internal/selection'
-import {applyRangeBound, mergeRangeRequests, type Range, type RangeRequest} from '@iankressin/core/internal/range'
+import type * as Solana from '@sqd-sdk/core/portal/solana'
+import {mergeSelection, type MergeSelection} from '@sqd-sdk/core/internal/selection'
+import {applyRangeBound, mergeRangeRequests, type Range, type RangeRequest} from '@sqd-sdk/core/internal/range'
 
 // TODO: is it needed?
 export {
@@ -11,7 +11,7 @@ export {
     BalanceRequest,
     TokenBalanceRequest,
     RewardRequest,
-} from '@iankressin/core/portal/solana'
+} from '@sqd-sdk/core/portal/solana'
 
 export type RequestOptions<R> = {range?: Range; request: R}
 export type LogRequestOptions = RequestOptions<Solana.LogRequest>

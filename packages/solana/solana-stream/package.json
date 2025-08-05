@@ -1,5 +1,5 @@
 {
-    "name": "@iankressin/solana-stream",
+    "name": "@sqd-sdk/solana-stream",
     "version": "7.2.0",
     "description": "SVM block data streamer",
     "license": "GPL-3.0-or-later",
@@ -7,10 +7,7 @@
     "publishConfig": {
         "access": "public"
     },
-    "files": [
-        "lib",
-        "src"
-    ],
+    "files": ["lib", "src"],
     "main": "./lib/index.cjs",
     "module": "./lib/index.js",
     "types": "./lib/index.d.ts",
@@ -19,7 +16,7 @@
         "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types"
     },
     "dependencies": {
-        "@iankressin/core": "workspace:*",
+        "@sqd-sdk/core": "workspace:*",
         "bs58": "^6.0.0"
     },
     "devDependencies": {
@@ -34,10 +31,7 @@
             "types": "./lib/version.d.ts",
             "default": "./lib/version.cjs"
         },
-        "files": [
-            "lib",
-            "src"
-        ],
+        "files": ["lib", "src"],
         "main": "./lib/index.cjs",
         "module": "./lib/index.js",
         "types": "./lib/index.d.ts",
@@ -46,7 +40,7 @@
             "build:dev": "tsup --config tsup.config.dev.ts && pnpm build:types"
         },
         "dependencies": {
-            "@iankressin/core": "workspace:*",
+            "@sqd-sdk/core": "workspace:*",
             "bs58": "^6.0.0"
         },
         "devDependencies": {

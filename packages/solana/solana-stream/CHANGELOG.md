@@ -1,4 +1,4 @@
-# @iankressin/solana-stream
+# @sqd-sdk/solana-stream
 
 ## 7.2.0
 
@@ -11,7 +11,7 @@
 
 - Updated dependencies [2f45a53]
 - Updated dependencies [de16860]
-  - @iankressin/core@9.0.0
+  - @sqd-sdk/core@9.0.0
 
 ## 7.1.1
 
@@ -19,7 +19,7 @@
 
 - b8fdb60: test
 - Updated dependencies [b8fdb60]
-  - @iankressin/core@8.1.0
+  - @sqd-sdk/core@8.1.0
 
 ## 7.1.0
 
@@ -32,7 +32,7 @@
 
 - Updated dependencies [03e2e4f]
 - Updated dependencies [05a1c90]
-  - @iankressin/core@8.0.0
+  - @sqd-sdk/core@8.0.0
 
 ## 7.0.0
 
@@ -43,7 +43,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@7.0.0
+  - @sqd-sdk/core@7.0.0
 
 ## 6.0.0
 
@@ -54,7 +54,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@6.0.0
+  - @sqd-sdk/core@6.0.0
 
 ## 1.0.0
 
@@ -65,7 +65,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@1.0.0
+  - @sqd-sdk/core@1.0.0
 
 ## 1.59.0
 
@@ -82,7 +82,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@3.0.0
+  - @sqd-sdk/core@3.0.0
 
 ## 1.2.0
 
@@ -93,14 +93,14 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@2.0.0
+  - @sqd-sdk/core@2.0.0
 
 ## 1.1.1
 
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@1.0.0
+  - @sqd-sdk/core@1.0.0
 
 ## 1.1.0
 
@@ -111,7 +111,7 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@0.2.0
+  - @sqd-sdk/core@0.2.0
 
 ## 1.0.0
 
@@ -126,4 +126,4 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @iankressin/core@0.1.0
+  - @sqd-sdk/core@0.1.0
